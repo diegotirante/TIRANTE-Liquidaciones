@@ -1,0 +1,1175 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useMemo } from 'react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { 
+  Building2, 
+  Calculator, 
+  Users, 
+  MapPin, 
+  Phone, 
+  ClipboardList,
+  Target,
+  DollarSign,
+  PieChart
+} from 'lucide-react';
+import { motion } from 'motion/react';
+
+// --- Types ---
+type CaptationSource = 'PROPIA' | 'OFICINA';
+
+// --- Components ---
+
+const LiquidationEngine = () => {
+  const [activeTab, setActiveTab] = useState<'VENTA' | 'ALQUILER'>('ALQUILER');
+  const [opAmount, setOpAmount] = useState<number>(3500);
+  const [source, setSource] = useState<CaptationSource>('PROPIA');
+  
+  // Office Only Mode
+  const [isOfficeOnly, setIsOfficeOnly] = useState<boolean>(false);
+  
+  // PDF & Data Fields
+  const [agentName, setAgentName] = useState<string>('Oficina Central');
+  const [opNumber, setOpNumber] = useState<string>('OP-0001');
+  
+  // Currency Conversion
+  const [isPesos, setIsPesos] = useState<boolean>(false);
+  const [exchangeRate, setExchangeRate] = useState<number>(1050);
+ 
+  // States for Rentals
+  const [cleaningGastos, setCleaningGastos] = useState<number>(77);
+  const [coAgentName, setCoAgentName] = useState<string>('');
+  
+  // States for Sales
+  const [saleMode, setSaleMode] = useState<'LIBRE' | 'COMPARTIDO'>('COMPARTIDO');
+  const [commVendedorPct, setCommVendedorPct] = useState<number>(4);
+  const [commCompradorPct, setCommCompradorPct] = useState<number>(4);
+  const [escrituraPct, setEscrituraPct] = useState<number>(3.6);
+  const [parcelario, setParcelario] = useState<number>(75);
+  const [inhibicion, setInhibicion] = useState<number>(18);
+  const [valorDeclarar, setValorDeclarar] = useState<number>(3000);
+
+  const [isTracto, setIsTracto] = useState<boolean>(false);
+  const [notaryFeePct, setNotaryFeePct] = useState<number>(2);
+  const [itiPct, setItiPct] = useState<number>(1.5);
+  const [tasaTractoPct, setTasaTractoPct] = useState<number>(0.5);
+  const [certificadosMonto, setCertificadosMonto] = useState<number>(150);
+  const [inscripcionMonto, setInscripcionMonto] = useState<number>(100);
+  const [hasDeudas, setHasDeudas] = useState<boolean>(false);
+  const [deudasMonto, setDeudasMonto] = useState<number>(0);
+  const [reservaMonto, setReservaMonto] = useState<number>(0);
+  const [reservaFecha, setReservaFecha] = useState<string>('');
+  
+  const [isCompartida, setIsCompartida] = useState<boolean>(false);
+  const [coAgencyName, setCoAgencyName] = useState<string>('');
+  const [shareBuyer, setShareBuyer] = useState<boolean>(false);
+  const [shareSeller, setShareSeller] = useState<boolean>(false);
+
+  const [showExplanation, setShowExplanation] = useState<boolean>(false);
+
+  const formatCurrency = (val: number) => {
+    // Round to avoid decimals as requested
+    const amount = Math.round(isPesos ? val * exchangeRate : val);
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: isPesos ? 'ARS' : 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const results = useMemo(() => {
+    if (activeTab === 'ALQUILER') {
+      // Logic from user: inquilino pays opAmount (inclusive)
+      // opAmount - Cleaning = RentBase (Vd) + 10% Inq
+      // opAmount - Cleaning = 1.1 * RentBase
+      // RentBase (Vd) = (opAmount - Cleaning) / 1.1
+      const rentBase = (opAmount - cleaningGastos) / 1.1;
+      const commInquilino = rentBase * 0.10;
+      const commPropietario = rentBase * 0.10;
+      const subTotalLiquidacion = rentBase; // This is the "Valor Declarado"
+      const totalAgency = commInquilino + commPropietario;
+      const propietarioRecibe = rentBase * 0.90; // RentBase - 10% Prop
+
+      if (isOfficeOnly) {
+        const socio = totalAgency * 0.25;
+        const gerente = totalAgency * 0.25;
+        const cajaOficina = totalAgency * 0.50;
+        const gastosOficina = cajaOficina * 0.75;
+
+        return { 
+          type: 'ALQUILER',
+          commInquilino, subTotalLiquidacion, commPropietario, totalAgency, propietarioRecibe,
+          agent: 0, martillero: 0, captador: 0, officeNet: totalAgency, socio, gerente, cajaOficina, gastosOficina,
+          agentPct: 0, officePct: 1, isOfficeOnly: true
+        };
+      }
+
+      const agentPct = source === 'PROPIA' ? 0.30 : 0.25;
+      const officePct = source === 'PROPIA' ? 0.70 : 0.75; // Increased by 7% (5% Martillero + 2% Captador removed)
+      
+      const agent = totalAgency * agentPct;
+      const officeNet = totalAgency * officePct;
+
+      const socio = officeNet * 0.25;
+      const gerente = officeNet * 0.25;
+      const cajaOficina = officeNet * 0.50;
+      const gastosOficina = cajaOficina * 0.75;
+      const inversionOficina = cajaOficina * 0.25;
+
+      return { 
+        type: 'ALQUILER',
+        commInquilino, subTotalLiquidacion, commPropietario, totalAgency, propietarioRecibe,
+        agent, martillero: 0, captador: 0, officeNet, socio, gerente, cajaOficina, gastosOficina, inversionOficina,
+        agentPct, officePct, isOfficeOnly: false
+      };
+    } else {
+      let rawCommVendedor = opAmount * (commVendedorPct / 100);
+      let rawCommComprador = opAmount * (commCompradorPct / 100);
+
+      const isInternalShare = coAgencyName === 'AGENTE OFICINA';
+      
+      // Share Logic: 
+      // If external share (NOT Agente Oficina), agency keeps 0% of that "side" (cede 100%)
+      // If internal share (Agente Oficina), agency keeps 100% (cede 0%) but we split agent comm later
+      let commVendedorAgencia = rawCommVendedor;
+      if (shareSeller && !isInternalShare) {
+        commVendedorAgencia = 0;
+      }
+
+      let commCompradorAgencia = rawCommComprador;
+      if (shareBuyer && !isInternalShare) {
+        commCompradorAgencia = 0;
+      }
+
+      // Logic: If internal share, the agent who "brings" that side keeps the commission %
+      // Agent 1 keeps sides not shared. Agent 2 gets sides shared internally.
+      
+      const totalAgency = commCompradorAgencia + commVendedorAgencia;
+      
+      // --- Notary/Escritura Engineering (Calculated on valorDeclarar) ---
+      const baseCalc = valorDeclarar > 0 ? valorDeclarar : opAmount;
+      const sellosTotal = baseCalc * (escrituraPct / 100);
+      const sellosVendedor = sellosTotal / 2;
+      const sellosComprador = sellosTotal / 2;
+      
+      const iti = baseCalc * (itiPct / 100);
+      const honorariosEscribano = baseCalc * (notaryFeePct / 100);
+      const tasaTracto = isTracto ? baseCalc * (tasaTractoPct / 100) : 0;
+      const sucesionJudicial = isTracto ? baseCalc * 0.04 : 0; // 3-5% additional estimate
+      
+      const sellerClosingExpenses = iti + certificadosMonto + sucesionJudicial + tasaTracto + parcelario + (hasDeudas ? deudasMonto : 0);
+      const buyerClosingExpenses = honorariosEscribano + inscripcionMonto;
+
+      const totalGastosVendedor = saleMode === 'LIBRE' ? 0 : (sellosVendedor + sellerClosingExpenses);
+      const totalGastosComprador = saleMode === 'LIBRE' ? (sellosTotal + buyerClosingExpenses + sellerClosingExpenses) : (sellosComprador + buyerClosingExpenses);
+      
+      const totalOperacion = opAmount + rawCommComprador + totalGastosComprador - reservaMonto;
+      const vendedorRecibe = opAmount - rawCommVendedor - totalGastosVendedor;
+
+      if (isOfficeOnly) {
+        const socio = totalAgency * 0.25;
+        const gerente = totalAgency * 0.25;
+        const cajaOficina = totalAgency * 0.50;
+
+        return { 
+          type: 'VENTA',
+          commComprador: rawCommComprador, 
+          commVendedor: rawCommVendedor,
+          totalAgency, totalOperacion, vendedorRecibe, 
+          iti, certificadosMonto, sucesionJudicial, sellosVendedor, sellosComprador, 
+          honorariosEscribano, inscripcionMonto, totalGastosVendedor, totalGastosComprador,
+          tasaTracto, parcelario, deudasMonto, reservaMonto, reservaFecha,
+          agent: 0, martillero: 0, captador: 0, officeNet: totalAgency, socio, gerente, cajaOficina,
+          agentPct: 0, officePct: 1, isOfficeOnly: true
+        };
+      }
+
+      const agentPct = source === 'PROPIA' ? 0.30 : 0.25;
+      const officePct = source === 'PROPIA' ? 0.70 : 0.75; // Increased by 7% (5%+2% Martillero/Captador)
+      
+      // Agent Calculation adjusting for internal shares
+      let agent1Share = 0;
+      let agent2Share = 0;
+
+      // Logic: If internal share, the agent who "brings" that side keeps the commission %
+      // Agent 1 keeps sides not shared. Agent 2 gets sides shared internally.
+      
+      let commPoolComprador = commCompradorAgencia * agentPct;
+      if (shareBuyer && isInternalShare) {
+        agent2Share += commPoolComprador;
+      } else if (!shareBuyer) {
+        agent1Share += commPoolComprador;
+      }
+
+      let commPoolVendedor = commVendedorAgencia * agentPct;
+      if (shareSeller && isInternalShare) {
+        agent2Share += commPoolVendedor;
+      } else if (!shareSeller) {
+        agent1Share += commPoolVendedor;
+      }
+
+      const agent = agent1Share;
+      const officeNet = totalAgency * officePct;
+
+      const socio = officeNet * 0.25;
+      const gerente = officeNet * 0.25;
+      const cajaOficina = officeNet * 0.50;
+
+      // External share value (what we ceded)
+      let externalShareAmount = 0;
+      if (shareBuyer && !isInternalShare) externalShareAmount += rawCommComprador;
+      if (shareSeller && !isInternalShare) externalShareAmount += rawCommVendedor;
+
+      return { 
+        type: 'VENTA',
+        commComprador: rawCommComprador,
+        commVendedor: rawCommVendedor, 
+        totalAgency, totalOperacion, vendedorRecibe, 
+        iti, certificadosMonto, sucesionJudicial, sellosVendedor, sellosComprador, 
+        honorariosEscribano, inscripcionMonto, totalGastosVendedor, totalGastosComprador,
+        tasaTracto, parcelario, deudasMonto, reservaMonto, reservaFecha,
+        agent, agent2: agent2Share, martillero: 0, captador: 0, externalShareAmount,
+        officeNet, socio, gerente, cajaOficina,
+        agentPct, officePct, isOfficeOnly: false
+      };
+    }
+  }, [activeTab, opAmount, source, cleaningGastos, saleMode, commVendedorPct, commCompradorPct, escrituraPct, parcelario, inhibicion, isTracto, notaryFeePct, itiPct, certificadosMonto, inscripcionMonto, isOfficeOnly, shareBuyer, shareSeller, valorDeclarar, deudasMonto, hasDeudas, tasaTractoPct, coAgencyName, reservaMonto, reservaFecha]);
+
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const date = new Date().toLocaleDateString();
+    
+    const addHeader = (p_doc: jsPDF) => {
+      p_doc.setFillColor(20, 36, 69); // Dark Blue
+      p_doc.rect(0, 0, 210, 40, 'F');
+      
+      p_doc.setTextColor(255, 255, 255);
+      p_doc.setFontSize(22);
+      p_doc.setFont('helvetica', 'bold');
+      p_doc.text('TIRANTE®', 15, 20);
+      p_doc.setFontSize(16);
+      p_doc.text('BIENES RAICES', 15, 30);
+      
+      p_doc.setFontSize(10);
+      p_doc.text(`LIQUIDACIÓN: ${opNumber}`, 150, 15);
+      p_doc.text(`FECHA: ${date}`, 150, 22);
+      p_doc.text(`AGENTE: ${agentName.toUpperCase()}`, 150, 29);
+    };
+
+    addHeader(doc);
+
+    // Body Title
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.text(`INFORME DE LIQUIDACIÓN - ${activeTab === 'ALQUILER' ? 'ALQUILER TEMPORAL' : 'VENTA INMOBILIARIA'}`, 15, 55);
+    
+    // Summary Table
+    const summaryData = [
+      [activeTab === 'ALQUILER' ? 'Monto Total Operación (Inclusive)' : 'Monto Real de Venta', formatCurrency(opAmount)],
+    ];
+
+    if (activeTab === 'VENTA') {
+      summaryData.push(['Valor a Declarar', formatCurrency(valorDeclarar)]);
+    }
+
+    if (activeTab === 'VENTA' && reservaMonto > 0) {
+      summaryData.push(['(-) SEÑA DE RESERVA RECIBIDA', `-${formatCurrency(reservaMonto)}`]);
+      const restaAbonar = results.totalAgency - reservaMonto;
+      if (restaAbonar > 0) {
+        summaryData.push(['RESTA ABONAR COMISIÓN INMOBILIARIA', formatCurrency(restaAbonar)]);
+      } else {
+        summaryData.push(['COMISIÓN TOTALMENTE CUBIERTA', 'Saldado']);
+      }
+    }
+
+    summaryData.push(
+      ['Comisión Comprador/Inquilino', formatCurrency(activeTab === 'ALQUILER' ? results.commInquilino : results.commComprador)],
+      ['Comisión Vendedor/Propietario', formatCurrency(activeTab === 'ALQUILER' ? results.commPropietario! : results.commVendedor)],
+      ['TOTAL COMISIÓN AGENCIA', formatCurrency(results.totalAgency)],
+      ['-----------------------', '-----------------------'],
+      [activeTab === 'ALQUILER' ? 'Propietario Recibe' : 'MONTO NETO A RECIBIR (Vendedor)', formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)],
+      [activeTab === 'ALQUILER' ? 'Precio de la Publicación' : 'MONTO TOTAL A ENTREGAR (Comprador)', formatCurrency(activeTab === 'ALQUILER' ? opAmount : results.totalOperacion)],
+    );
+
+    autoTable(doc, {
+      startY: 65,
+      head: [['Concepto', 'Valor']],
+      body: summaryData,
+      theme: 'striped',
+      headStyles: { fillColor: [255, 9, 62] } // Primary Red
+    });
+
+    if (activeTab === 'ALQUILER') {
+       const finalYTable = (doc as any).lastAutoTable.finalY || 100;
+       doc.setFontSize(12);
+       doc.text('INGENIERÍA DE LA OPERACIÓN (DESGLOSE)', 15, finalYTable + 10);
+       
+       const alqData = [
+         ['VALOR PUBLIACIÓN (Total p/Inquilino)', formatCurrency(opAmount)],
+         ['----------------------------', '----------------------------'],
+         ['Valor Alquiler (Declarado)', formatCurrency(results.type === 'ALQUILER' ? results.subTotalLiquidacion : 0)],
+         ['Comisión Inquilino (10%)', formatCurrency(results.type === 'ALQUILER' ? results.commInquilino : 0)],
+         ['Fondo de Limpieza', formatCurrency(cleaningGastos)],
+         ['----------------------------', '----------------------------'],
+         ['DESGLOSE PARA PROPIETARIO', ''],
+         ['Monto Cobrado a Inquilino', formatCurrency(opAmount)],
+         ['(-) Fondo de Limpieza', `-${formatCurrency(cleaningGastos)}`],
+         ['(-) Comisión Inquilino (10%)', `-${formatCurrency(results.type === 'ALQUILER' ? results.commInquilino : 0)}`],
+         ['VALOR ALQUILER CONTRATO', formatCurrency(results.type === 'ALQUILER' ? results.subTotalLiquidacion : 0)],
+         ['(-) Comisión Propietario (10%)', `-${formatCurrency(results.type === 'ALQUILER' ? results.commPropietario : 0)}`],
+         ['SALDO NETO A LIQUIDAR', formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : 0)],
+       ];
+
+       autoTable(doc, {
+         startY: finalYTable + 15,
+         head: [['Concepto Técnico', 'Monto']],
+         body: alqData,
+         theme: 'grid',
+         headStyles: { fillColor: [20, 36, 69] }
+       });
+    }
+
+    if (activeTab === 'VENTA') {
+       const finalYTable = (doc as any).lastAutoTable.finalY || 100;
+       doc.text('SIMULACIÓN DE GASTOS DE ESCRITURACIÓN', 15, finalYTable + 10);
+       
+       const notaryData = [
+         ['DETALLE DE CIERRE - COMPRADOR', ''],
+         ['Precio de Venta del Inmueble', formatCurrency(opAmount)],
+         [`Comisión Inmobiliaria (${commCompradorPct}%)`, formatCurrency(results.commComprador)],
+         [`Impuesto de Sellos (${(saleMode === 'COMPARTIDO' ? escrituraPct / 2 : escrituraPct).toFixed(1)}%)`, formatCurrency(results.sellosComprador)],
+         [`Honorarios Escribanía (${notaryFeePct}%)`, formatCurrency(results.honorariosEscribano)],
+         ['Tasas, Certificados e Inscripción', formatCurrency(results.inscripcionMonto)],
+         ...(saleMode === 'LIBRE' ? [
+            ['Aportes Vendedor (Asumidos)', formatCurrency(results.iti + results.certificadosMonto + results.parcelario + results.sucesionJudicial + results.tasaTracto + (hasDeudas ? deudasMonto : 0))]
+         ] : []),
+         ['TOTAL A ENTREGAR POR COMPRADOR', formatCurrency(results.totalOperacion)],
+         ...(reservaMonto > 0 ? [
+            [`(-) SEÑA DE RESERVA (${reservaFecha})`, `-${formatCurrency(reservaMonto)}`]
+         ] : []),
+         ['', ''],
+         ['DETALLE DE CIERRE - VENDEDOR', ''],
+         ['Precio de Venta del Inmueble', formatCurrency(opAmount)],
+         [`Comisión Inmobiliaria (${commVendedorPct}%)`, `-${formatCurrency(results.commVendedor)}`],
+         ...(saleMode === 'LIBRE' ? [['Gastos Título (Transferidos p/Comprador)', '0']] : [
+            ...(saleMode === 'COMPARTIDO' ? [[`Impuesto de Sellos (${(escrituraPct / 2).toFixed(1)}%)`, `-${formatCurrency(results.sellosVendedor)}`]] : []),
+            [`ITI / Ganancias (${itiPct}%)`, `-${formatCurrency(results.iti)}`],
+            ['Diligenciamientos/Certif. Ley', `-${formatCurrency(results.certificadosMonto)}`],
+            ['Estado Parcelario (Agrimensura)', `-${formatCurrency(results.parcelario)}`],
+            ...(isTracto ? [[`Tasa Tracto (${tasaTractoPct}%)`, `-${formatCurrency(results.tasaTracto)}`], ['Honorarios Sucesión / Gastos Jud.', `-${formatCurrency(results.sucesionJudicial)}`]] : []),
+            ...(hasDeudas ? [['Retención Deudas/Impuestos', `-${formatCurrency(results.deudasMonto)}`]] : []),
+         ]),
+         ['MONTO NETO A RECIBIR POR VENDEDOR', formatCurrency(results.vendedorRecibe)],
+       ];
+
+       autoTable(doc, {
+         startY: finalYTable + 15,
+         head: [['Concepto Notarial', 'Estimado']],
+         body: notaryData,
+         theme: 'grid',
+         headStyles: { fillColor: [20, 36, 69] }
+       });
+    }
+
+    // SECOND PAGE: Internal Distribution with Signatures
+    doc.addPage();
+    addHeader(doc);
+
+    const finalYDist = 55;
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('INGENIERÍA DE LA LIQUIDACIÓN (Dist. Interna)', 15, finalYDist);
+
+    let distributionData: any[] = [];
+    if (results.isOfficeOnly) {
+       distributionData = [
+        ['Socio (25%)', formatCurrency(results.socio), '......................'],
+        ['Gerente (25%)', formatCurrency(results.gerente), '......................'],
+        ['Oficina/Caja (50%)', formatCurrency(results.cajaOficina), '......................'],
+      ];
+    } else {
+      distributionData = [
+        [`Agente 1: ${agentName}`, formatCurrency(results.agent), '......................'],
+        ...(coAgencyName === 'AGENTE OFICINA' ? [[`Agente 2: ${coAgentName || '---'}`, formatCurrency(results.agent2 || 0), '......................']] : []),
+        ...(results.type === 'VENTA' && results.externalShareAmount! > 0 ? [[`Colega: ${coAgencyName}`, formatCurrency(results.externalShareAmount), '......................']] : []),
+        ['OFICINA NETO', formatCurrency(results.officeNet), 'N/A'],
+        ['Socio (25% s/Neto)', formatCurrency(results.socio), '......................'],
+        ['Gerente (25% s/Neto)', formatCurrency(results.gerente), '......................'],
+        ['Caja Oficina (50% s/Neto)', formatCurrency(results.cajaOficina), '......................'],
+      ];
+    }
+
+    autoTable(doc, {
+      startY: finalYDist + 10,
+      head: [['Actor / Fondo', 'Distribución', 'Firma de Recibido']],
+      body: distributionData,
+      theme: 'grid',
+      headStyles: { fillColor: [20, 36, 69] },
+      styles: { cellPadding: 5 }
+    });
+
+    if (activeTab === 'VENTA' && reservaMonto > 0) {
+      const finalYSummaryComm = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      const restaAbonar = results.totalAgency - reservaMonto;
+      if (restaAbonar > 0) {
+        doc.setTextColor(255, 9, 62); // Primary Red
+        doc.text(`TOTAL COMISIÓN: ${formatCurrency(results.totalAgency)} | SEÑA: ${formatCurrency(reservaMonto)}`, 15, finalYSummaryComm);
+        doc.text(`RESTA ABONAR COMISIÓN INMOBILIARIA: ${formatCurrency(restaAbonar)}`, 15, finalYSummaryComm + 6);
+      } else {
+        doc.setTextColor(0, 128, 0); // Green
+        doc.text(`COMISIÓN TOTALMENTE CUBIERTA POR LA SEÑA (Excedente: ${formatCurrency(Math.abs(restaAbonar))})`, 15, finalYSummaryComm);
+      }
+    }
+
+    const finalYSign = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(10);
+    doc.text('Certifico que la presente liquidación responde a los protocolos internos de TIRANTE® Bienes Raices.', 15, finalYSign);
+    
+    doc.save(`Liquidacion_${opNumber}_${activeTab.toLowerCase()}.pdf`);
+  };
+
+  return (
+    <div className="bg-dark-blue rounded-3xl p-6 shadow-xl flex flex-col h-full border border-white/5 box-border">
+      {/* Header with Title */}
+      <div className="mb-6 flex flex-col gap-1.5">
+         <div className="flex items-center gap-3">
+            <div className="bg-primary-red p-2 rounded-lg">
+              <Calculator className="text-white w-5 h-5" />
+            </div>
+            <h1 className="text-xl font-bold text-white uppercase tracking-tight">Liquidación de Operación</h1>
+         </div>
+         <p className="text-xs text-slate-gray font-medium uppercase tracking-widest">Protocolo Interno de Gestión</p>
+      </div>
+
+      {/* Tab Switcher & Folio Indicator */}
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div className="flex bg-white/5 p-1 rounded-xl">
+          <button 
+            onClick={() => setActiveTab('ALQUILER')}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'ALQUILER' ? 'bg-primary-red text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          >
+            Alquileres
+          </button>
+          <button 
+            onClick={() => setActiveTab('VENTA')}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'VENTA' ? 'bg-primary-red text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          >
+            Ventas
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsOfficeOnly(!isOfficeOnly)}
+            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${isOfficeOnly ? 'bg-primary-red border-primary-red text-white' : 'border-white/10 text-slate-400 hover:bg-white/5'}`}
+          >
+            Modo Oficina
+          </button>
+          <div className="flex bg-white/5 p-1 rounded-xl">
+            <button 
+              onClick={() => setIsPesos(false)}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${!isPesos ? 'bg-white/10 text-white' : 'text-slate-500'}`}
+            >
+              USD
+            </button>
+            <button 
+              onClick={() => setIsPesos(true)}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${isPesos ? 'bg-white/10 text-white' : 'text-slate-500'}`}
+            >
+              ARS
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Dynamic Inputs */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="col-span-2 md:col-span-1">
+          <label className="micro-label">
+            {activeTab === 'ALQUILER' ? 'Precio de Publicación (Todo Incluido)' : 'Monto Real de Venta'} ({isPesos ? 'ARS' : 'USD'})
+          </label>
+          <input 
+            type="number"
+            className="sleek-input py-2"
+            value={opAmount}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setOpAmount(val);
+              if (activeTab === 'ALQUILER') {
+                setCleaningGastos(Number((val * 0.022).toFixed(2)));
+              }
+            }}
+          />
+          {activeTab === 'ALQUILER' && (
+            <p className="text-[9px] text-slate-gray mt-1 font-bold">Base Alquiler + 10% Comis. + Limpieza</p>
+          )}
+        </div>
+        {activeTab === 'VENTA' && (
+          <div className="col-span-2 md:col-span-1">
+            <label className="micro-label">Valor a Escriturar (Declarar)</label>
+            <input 
+              type="number"
+              className="sleek-input py-2"
+              value={valorDeclarar}
+              onChange={(e) => setValorDeclarar(Number(e.target.value))}
+            />
+          </div>
+        )}
+        <div className="col-span-2 md:col-span-1">
+          <label className="micro-label">Coti Dólar</label>
+          <input 
+            type="number"
+            className={`sleek-input py-2 ${!isPesos && 'opacity-50 pointer-events-none'}`}
+            value={exchangeRate}
+            onChange={(e) => setExchangeRate(Number(e.target.value))}
+            disabled={!isPesos}
+          />
+        </div>
+        
+        {!isOfficeOnly && (
+          <>
+            <div className="col-span-2 md:col-span-1">
+              <label className="micro-label">Agente Responsable</label>
+              <input type="text" className="sleek-input py-2" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
+            </div>
+            <div className="col-span-2 md:col-span-1">
+              <label className="micro-label">Captación del Inmueble</label>
+              <select 
+                className="sleek-input text-xs py-2"
+                value={source}
+                onChange={(e) => setSource(e.target.value as CaptationSource)}
+              >
+                <option value="PROPIA">Propia Agente (30%)</option>
+                <option value="OFICINA">Oficina (25%)</option>
+              </select>
+            </div>
+          </>
+        )}
+        
+        <div className="col-span-2 md:col-span-1">
+          <label className="micro-label">ID de Operación</label>
+          <input type="text" className="sleek-input py-2" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
+        </div>
+
+        {activeTab === 'ALQUILER' ? (
+          <div className="col-span-2 md:col-span-1">
+            <label className="micro-label">Gastos Limpieza/Fijos</label>
+            <input type="number" className="sleek-input py-2" value={cleaningGastos} onChange={(e) => setCleaningGastos(Number(e.target.value))} />
+          </div>
+        ) : (
+          <>
+            <div className="col-span-2 md:col-span-1">
+              <label className="micro-label">Tipo de Gastos (Escritura)</label>
+              <select className="sleek-input text-xs py-2" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
+                <option value="COMPARTIDO">Gastos de Escritura Compartidos</option>
+                <option value="LIBRE">Libre de Gastos (Total p/Comprador)</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3 col-span-2 md:col-span-1">
+               <div>
+                  <label className="micro-label">% Comisión Comprador</label>
+                  <input type="number" className="sleek-input py-2" value={commCompradorPct} onChange={(e) => setCommCompradorPct(Number(e.target.value))} />
+               </div>
+               <div>
+                  <label className="micro-label">% Comisión Vendedor</label>
+                  <input type="number" className="sleek-input py-2" value={commVendedorPct} onChange={(e) => setCommVendedorPct(Number(e.target.value))} />
+               </div>
+            </div>
+            
+            <div className="col-span-2 bg-white/5 p-4 rounded-2xl border border-white/5 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-gray uppercase tracking-widest">Colaboración Inmobiliaria</span>
+                <button 
+                  onClick={() => setIsCompartida(!isCompartida)}
+                  className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase transition-all ${isCompartida ? 'bg-primary-red text-white' : 'bg-white/10 text-slate-500 hover:text-white'}`}
+                >
+                  {isCompartida ? 'COMISIÓN COMPARTIDA ACTIVADA' : 'OPERACIÓN PROPIA'}
+                </button>
+              </div>
+              {isCompartida && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                   <div className="md:col-span-1">
+                      <label className="micro-label">Colaborador / Tipo</label>
+                      <select 
+                        className="sleek-input text-xs py-1.5"
+                        value={coAgencyName === 'AGENTE OFICINA' ? 'AGENTE OFICINA' : 'EXTERNO'}
+                        onChange={(e) => {
+                          if (e.target.value === 'AGENTE OFICINA') {
+                            setCoAgencyName('AGENTE OFICINA');
+                          } else {
+                            setCoAgencyName('');
+                          }
+                        }}
+                      >
+                         <option value="EXTERNO">Agencia Externa (Cede 100%)</option>
+                         <option value="AGENTE OFICINA">Agente de la Oficina (Split Interno)</option>
+                      </select>
+                   </div>
+                   {coAgencyName === 'AGENTE OFICINA' && (
+                     <div className="md:col-span-1">
+                        <label className="micro-label text-primary-red">Nombre del 2do Agente</label>
+                        <input type="text" className="sleek-input py-1.5 border-primary-red/30" value={coAgentName} onChange={(e) => setCoAgentName(e.target.value)} placeholder="Ej: Juan Pérez" />
+                     </div>
+                   )}
+                   {coAgencyName !== 'AGENTE OFICINA' && (
+                     <div className="md:col-span-1">
+                        <label className="micro-label">Nombre Inmobiliaria Colega</label>
+                        <input type="text" className="sleek-input py-1.5" value={coAgencyName} onChange={(e) => setCoAgencyName(e.target.value)} placeholder="Ej: Keller Williams" />
+                     </div>
+                   )}
+                   <div className="flex gap-4 col-span-1 md:col-span-3 lg:col-span-2">
+                      <label className="flex items-center gap-2 cursor-pointer bg-white/5 p-2 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
+                        <input type="checkbox" checked={shareBuyer} onChange={(e) => setShareBuyer(e.target.checked)} className="accent-primary-red w-4 h-4" />
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black text-white uppercase leading-none">Cede Punta Compradora/Inquilino</span>
+                          <span className="text-[8px] text-slate-gray mt-1 leading-tight">(Marca si el colega trae al cliente)</span>
+                        </div>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer bg-white/5 p-2 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
+                        <input type="checkbox" checked={shareSeller} onChange={(e) => setShareSeller(e.target.checked)} className="accent-primary-red w-4 h-4" />
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black text-white uppercase leading-none">Cede Punta Vendedora/Propietario</span>
+                          <span className="text-[8px] text-slate-gray mt-1 leading-tight">(Marca si el colega trae la propiedad)</span>
+                        </div>
+                      </label>
+                   </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {activeTab === 'VENTA' && (
+        <div className="grid grid-cols-2 gap-3 mb-6 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+           <div className="col-span-2 flex items-center justify-between mb-4 border-b border-white/5 pb-2">
+              <span className="text-[10px] font-bold text-slate-gray uppercase tracking-widest">Escritura y Gastos Notariales</span>
+              <button 
+                onClick={() => setIsTracto(!isTracto)}
+                className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase transition-all tracking-tighter ${isTracto ? 'bg-primary-red text-white shadow-lg shadow-red-900/40' : 'bg-white/5 text-slate-500 hover:text-white'}`}
+              >
+                {isTracto ? 'MODO TRACTO ABREVIADO (SUCESIÓN)' : 'MODO ESCRITURA DIRECTA'}
+              </button>
+           </div>
+           
+           <div className="col-span-1">
+              <label className="micro-label">% Sellos (Total a dividir)</label>
+              <input type="number" step="0.1" className="sleek-input py-1.5" value={escrituraPct} onChange={(e) => setEscrituraPct(Number(e.target.value))} />
+           </div>
+           <div className="col-span-1">
+              <label className="micro-label">% Honorarios Escribanía</label>
+              <input type="number" step="0.1" className="sleek-input py-1.5" value={notaryFeePct} onChange={(e) => setNotaryFeePct(Number(e.target.value))} />
+           </div>
+           <div className="col-span-1">
+              <label className="micro-label">% ITI / Ganancias</label>
+              <input type="number" step="0.1" className="sleek-input py-1.5" value={itiPct} onChange={(e) => setItiPct(Number(e.target.value))} />
+           </div>
+           <div className="col-span-1">
+              <label className="micro-label">Estado Parcelario ($)</label>
+              <input type="number" className="sleek-input py-1.5" value={parcelario} onChange={(e) => setParcelario(Number(e.target.value))} />
+           </div>
+           
+           {isTracto && (
+             <div className="col-span-2 bg-primary-red/5 p-3 rounded-xl border border-primary-red/20 mb-2">
+                <label className="micro-label text-primary-red text-[9px] font-black uppercase mb-2 block tracking-widest">Costos de Tracto Abreviado (Extras Vendedor)</label>
+                <div className="grid grid-cols-2 gap-4">
+                   <div>
+                      <label className="micro-label">Tasa Tracto (%)</label>
+                      <input type="number" step="0.1" className="sleek-input py-1 bg-dark-blue/30 border-primary-red/20" value={tasaTractoPct} onChange={(e) => setTasaTractoPct(Number(e.target.value))} />
+                   </div>
+                   <div>
+                      <label className="micro-label">Gastos Sucesión / Honorarios Abogado (Ref: 4%)</label>
+                      <div className="text-xs font-bold text-white bg-dark-blue/30 p-2 rounded-lg border border-primary-red/10">{formatCurrency(results.type === 'VENTA' ? results.sucesionJudicial : 0)}</div>
+                   </div>
+                </div>
+             </div>
+           )}
+
+           <div className="col-span-2 flex items-center gap-4 border-t border-white/5 pt-4 mt-2">
+              <div className="flex-1">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input type="checkbox" checked={hasDeudas} onChange={(e) => setHasDeudas(e.target.checked)} className="w-4 h-4 accent-primary-red bg-dark-blue border-white/10 rounded" />
+                  <span className="text-[10px] font-bold text-slate-gray group-hover:text-white transition-colors">RETENCIONES POR DEUDAS (ABI/ARBA/EXPENSAS)</span>
+                </label>
+              </div>
+              {hasDeudas && (
+                <div className="flex-1">
+                  <input type="number" className="sleek-input py-1 text-center bg-primary-red/10 border-primary-red/30 text-white placeholder:text-white/20" value={deudasMonto} onChange={(e) => setDeudasMonto(Number(e.target.value))} placeholder="Monto Deuda" />
+                </div>
+              )}
+           </div>
+
+           <div className="col-span-2 grid grid-cols-2 gap-4 border-t border-white/5 pt-4 mt-2">
+              <div className="col-span-1">
+                 <label className="micro-label">SEÑA DE RESERVA ($)</label>
+                 <input type="number" className="sleek-input py-1.5" value={reservaMonto} onChange={(e) => setReservaMonto(Number(e.target.value))} placeholder="Monto de Seña" />
+              </div>
+              <div className="col-span-1">
+                 <label className="micro-label">Fecha de Seña</label>
+                 <input type="date" className="sleek-input py-1.5 text-white/70" value={reservaFecha} onChange={(e) => setReservaFecha(e.target.value)} />
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Visual Explanation Trigger */}
+      <div className="flex items-center gap-4 mb-6 relative group">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
+        <button 
+          onClick={() => setShowExplanation(!showExplanation)}
+          className={`group flex items-center justify-center w-12 h-12 rounded-full border border-white/20 transition-all duration-500 overflow-hidden relative ${showExplanation ? 'bg-primary-red border-primary-red' : 'hover:border-white/40 bg-dark-blue'}`}
+        >
+          <div className={`text-white transition-transform duration-500 ${showExplanation ? 'rotate-180' : ''}`}>
+            ↓
+          </div>
+        </button>
+        <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
+        
+        {/* Tooltip for context */}
+        {!showExplanation && (
+          <div className="absolute left-1/2 -translate-x-1/2 -top-10 bg-white text-dark-blue text-[10px] font-bold px-3 py-1 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap uppercase tracking-tighter shadow-xl pointer-events-none">
+            Ver desglose de ingeniería
+          </div>
+        )}
+      </div>
+
+      {/* Explanation Card */}
+      {showExplanation && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: -20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="mb-8 p-6 bg-white rounded-2xl shadow-2xl space-y-6"
+        >
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+             <div className="w-1.5 h-6 bg-primary-red rounded-full"></div>
+             <h2 className="text-sm font-bold text-dark-blue uppercase tracking-tight">Ingeniería de la Liquidación</h2>
+          </div>
+          
+          <div className="space-y-6">
+            {activeTab === 'ALQUILER' ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="space-y-4">
+                  <h3 className="text-[11px] font-bold text-slate-gray uppercase text-center md:text-left">Liquidación para Inquilino</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center bg-dark-blue p-3 rounded-xl border border-white/10">
+                      <span className="text-white text-[10px] font-bold uppercase tracking-widest">Precio Publicación:</span>
+                      <span className="font-bold text-white text-lg">{formatCurrency(opAmount)}</span>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-2xl space-y-3 border border-gray-100 shadow-sm">
+                      <div className="flex justify-between text-xs border-b border-gray-100 pb-2">
+                        <span className="text-gray-500">Valor Alquiler:</span>
+                        <span className="font-bold text-dark-blue">{formatCurrency(results.type === 'ALQUILER' ? results.subTotalLiquidacion : 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs border-b border-gray-100 pb-2">
+                        <span className="text-gray-500">Honorarios Inmobiliaria (10%):</span>
+                        <span className="font-bold text-primary-red">+{formatCurrency(results.type === 'ALQUILER' ? results.commInquilino : 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-500">Gastos de Limpieza:</span>
+                        <span className="font-bold text-dark-blue">+{formatCurrency(cleaningGastos)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-[11px] font-bold text-slate-gray uppercase text-center md:text-left">Liquidación para Propietario</h3>
+                  <div className="p-4 bg-gray-50 rounded-2xl space-y-2.5 border border-gray-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+                    <div className="flex justify-between text-[11px]">
+                       <span className="text-gray-500 font-bold">Monto abonado por Inquilino:</span>
+                       <span className="font-bold text-dark-blue">{formatCurrency(opAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                       <span className="text-gray-400">(-) Fondo de Limpieza:</span>
+                       <span className="font-medium">-{formatCurrency(cleaningGastos)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] border-b border-gray-100 pb-2">
+                       <span className="text-gray-400">(-) Comisión Inquilino:</span>
+                       <span className="font-medium">-{formatCurrency(results.type === 'ALQUILER' ? results.commInquilino : 0)}</span>
+                    </div>
+                    
+                    <div className="flex justify-between py-2 items-center">
+                       <span className="text-xs font-black text-dark-blue uppercase tracking-tighter">Valor Alquiler Declarado:</span>
+                       <span className="text-sm font-black text-dark-blue">{formatCurrency(results.type === 'ALQUILER' ? results.subTotalLiquidacion : 0)}</span>
+                    </div>
+
+                    <div className="flex justify-between text-[11px] border-t border-gray-100 pt-2">
+                       <span className="text-red-400 font-medium">(-) Comisión Propietario (10%):</span>
+                       <span className="font-medium text-primary-red">-{formatCurrency(results.type === 'ALQUILER' ? results.commPropietario : 0)}</span>
+                    </div>
+                    
+                    <div className="border-t-2 border-dashed border-gray-200 mt-2 pt-3 flex justify-between items-center">
+                      <span className="text-xs font-bold text-green-700 uppercase">Saldo Neto a Recibir:</span>
+                      <span className="text-xl font-black text-green-600">{formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : 0)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-[11px] font-bold text-slate-gray uppercase">Masa de Comisión Agencia</h3>
+                  <div className="space-y-3 text-xs">
+                    <div className="flex justify-between items-center bg-dark-blue/5 p-3 rounded-xl border border-dark-blue/10">
+                      <span className="text-gray-600">Total Ingreso Agencia:</span>
+                      <span className="font-bold text-primary-red leading-none">{formatCurrency(results.totalAgency)}</span>
+                    </div>
+                    <ul className="space-y-2 pl-2">
+                       <li className="flex items-start gap-2 text-[10px]">
+                         <div className="mt-1.5 w-1 h-1 bg-primary-red rounded-full"></div>
+                         <p className="text-gray-500 leading-tight">10% aportado por Inquilino sobre base neta.</p>
+                       </li>
+                       <li className="flex items-start gap-2 text-[10px]">
+                        <div className="mt-1.5 w-1 h-1 bg-primary-red rounded-full"></div>
+                        <p className="text-gray-500 leading-tight">10% aportado por Propietario sobre base neta.</p>
+                      </li>
+                       <li className="flex items-start gap-2 border-t border-gray-100 pt-2 mt-2">
+                         <div className="mt-1.5 w-1 h-1 bg-blue-500 rounded-full"></div>
+                         <p className="text-blue-600 font-bold leading-tight text-[10px]">CAJA LIMPIEZA: El valor de limpieza no integra la masa de comisiones y se deposita íntegro a la caja de Limpieza.</p>
+                       </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="space-y-4">
+                  <h3 className="text-[11px] font-bold text-slate-gray uppercase">Participación Comprador</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-500">Valor del Inmueble:</span>
+                      <span className="font-bold text-dark-blue">{formatCurrency(opAmount)}</span>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-xl space-y-2 border border-gray-100 shadow-inner">
+                      <div className="flex justify-between text-xs font-medium">
+                        <span>Valor Base:</span>
+                        <span>{formatCurrency(opAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span>Honorarios Agencia:</span>
+                        <span className="font-bold text-primary-red">+{formatCurrency(results.type === 'VENTA' ? results.commComprador : 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-gray-400 italic">
+                        <span>(Sobre Monto Real: {commCompradorPct}%)</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-blue-50 rounded-xl space-y-2 border border-blue-100 shadow-inner">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter font-sans">Escribanía (Comprador)</span>
+                        <span className="text-[8px] text-blue-300 font-bold uppercase">Base: {formatCurrency(valorDeclarar)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                         <span>Sellos ({(saleMode === 'COMPARTIDO' ? escrituraPct / 2 : escrituraPct).toFixed(1)}%):</span>
+                         <span className="font-medium">+{formatCurrency(results.type === 'VENTA' ? results.sellosComprador : 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                         <span>Honorarios Escribano ({notaryFeePct}%):</span>
+                         <span className="font-medium">+{formatCurrency(results.type === 'VENTA' ? results.honorariosEscribano : 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                         <span>Tasas e Inscripción:</span>
+                         <span className="font-medium">+{formatCurrency(results.type === 'VENTA' ? results.inscripcionMonto : 0)}</span>
+                      </div>
+                      {reservaMonto > 0 && (
+                        <div className="flex justify-between text-[11px] text-green-600 font-bold bg-green-50 p-1 rounded mt-1 border border-green-100">
+                           <span>(-) SEÑA DE RESERVA:</span>
+                           <span>-{formatCurrency(reservaMonto)}</span>
+                        </div>
+                      )}
+                      {saleMode === 'LIBRE' && (
+                        <div className="pt-2 border-t border-blue-200 mt-1 space-y-1">
+                          <span className="text-[10px] text-blue-600 font-bold uppercase block">Gastos Vendedor (Asumidos):</span>
+                          <div className="flex justify-between text-[10px]">
+                            <span>ITI / Certif. / Otros:</span>
+                            <span>+{formatCurrency((results.type === 'VENTA' ? (results.iti + results.certificadosMonto + results.parcelario + results.sucesionJudicial + results.tasaTracto + (hasDeudas ? deudasMonto : 0)) : 0))}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between text-xs font-bold">
+                      <span className="text-dark-blue uppercase tracking-tighter">Total Costo Cliente:</span>
+                      <span className="text-blue-600">{formatCurrency(results.type === 'VENTA' ? results.totalOperacion : 0)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-[11px] font-bold text-slate-gray uppercase">Participación Vendedor</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-500">Valor del Inmueble:</span>
+                      <span className="font-bold text-dark-blue">{formatCurrency(opAmount)}</span>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-xl space-y-2 border border-gray-100 shadow-inner">
+                      <div className="flex justify-between text-xs font-medium">
+                        <span>Valor Base:</span>
+                        <span>{formatCurrency(opAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span>Honorarios Agencia:</span>
+                        <span className="font-bold text-primary-red">-{formatCurrency(results.type === 'VENTA' ? results.commVendedor : 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-gray-400 italic">
+                        <span>(Sobre Monto Real: {commVendedorPct}%)</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-red-50 rounded-xl space-y-2 border border-red-100 shadow-inner">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] text-primary-red font-bold uppercase tracking-tighter font-sans">Gastos Título (Vendedor)</span>
+                        <span className="text-[8px] text-red-300 font-bold uppercase">Base: {formatCurrency(valorDeclarar)}</span>
+                      </div>
+                      {saleMode === 'LIBRE' ? (
+                        <p className="text-[10px] text-slate-gray italic py-2">Transferidos al Comprador (Libre de Gastos)</p>
+                      ) : (
+                        <>
+                          {saleMode === 'COMPARTIDO' && (
+                            <div className="flex justify-between text-[11px]">
+                              <span>Sellos ({escrituraPct / 2}%):</span>
+                              <span className="font-medium">-{formatCurrency(results.type === 'VENTA' ? results.sellosVendedor : 0)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-[11px]">
+                             <span>Imp. Transferencia (ITI {itiPct}%):</span>
+                             <span className="font-medium">-{formatCurrency(results.type === 'VENTA' ? results.iti : 0)}</span>
+                          </div>
+                          <div className="flex justify-between text-[11px]">
+                             <span>Diligenciamientos/Cert.:</span>
+                             <span className="font-medium">-{formatCurrency(results.type === 'VENTA' ? results.certificadosMonto : 0)}</span>
+                          </div>
+                          <div className="flex justify-between text-[11px]">
+                             <span>Estado Parcelario:</span>
+                             <span className="font-medium">-{formatCurrency(results.type === 'VENTA' ? results.parcelario : 0)}</span>
+                          </div>
+                          {isTracto && (
+                            <div className="bg-primary-red/10 p-2 rounded-lg text-primary-red font-bold text-[10px] border border-primary-red/10">
+                              <div className="flex justify-between font-bold">
+                                <span>Tasa Tracto ({tasaTractoPct}%):</span>
+                                <span>-{formatCurrency(results.type === 'VENTA' ? results.tasaTracto : 0)}</span>
+                              </div>
+                              <div className="flex justify-between mt-1 text-[9px] text-primary-red/70">
+                                <span>Honorarios Sucesión:</span>
+                                <span>-{formatCurrency(results.type === 'VENTA' ? results.sucesionJudicial : 0)}</span>
+                              </div>
+                            </div>
+                          )}
+                          {hasDeudas && (
+                            <div className="flex justify-between text-[11px] text-primary-red font-bold bg-white/50 p-1 rounded">
+                              <span>Retención Deudas:</span>
+                              <span>-{formatCurrency(deudasMonto)}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between text-xs font-bold">
+                      <span className="text-dark-blue uppercase tracking-tighter">Neto a Recibir:</span>
+                      <span className="text-green-600">{formatCurrency(results.type === 'VENTA' ? results.vendedorRecibe : 0)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                   <h3 className="text-[11px] font-bold text-slate-gray uppercase">Liquidación Inmobiliaria</h3>
+                   <div className="space-y-3 text-xs">
+                    <div className="flex justify-between items-center bg-dark-blue/5 p-3 rounded-xl border border-dark-blue/10">
+                      <span className="text-gray-600">Comisión TIRANTE®:</span>
+                      <span className="font-bold text-primary-red leading-none">{formatCurrency(results.totalAgency)}</span>
+                    </div>
+                    {activeTab === 'VENTA' && reservaMonto > 0 && (
+                      <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
+                        <div className="flex justify-between text-[10px] text-red-600 font-bold">
+                          <span>Seña Recibida:</span>
+                          <span>-{formatCurrency(reservaMonto)}</span>
+                        </div>
+                        {results.totalAgency > reservaMonto ? (
+                          <div className="flex justify-between text-[10px] text-red-800 font-black mt-1 uppercase tracking-tighter">
+                            <span>RESTA ABONAR COMISIÓN:</span>
+                            <span>{formatCurrency(results.totalAgency - reservaMonto)}</span>
+                          </div>
+                        ) : (
+                          <div className="text-[9px] text-green-600 font-bold mt-1 text-center bg-white p-1 rounded border border-green-100 uppercase">
+                            Comisión Totalmente Cubierta
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {isCompartida && (
+                      <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-[10px]">
+                        <p className="font-bold text-blue-600 mb-1">CO-CONSTRUCCIÓN: {coAgencyName || 'OTRA AGENCIA'}</p>
+                        <p className="text-gray-500 leading-tight">Compartido 50/50 puntas: {[shareBuyer && 'Compradora', shareSeller && 'Vendedora'].filter(Boolean).join(' y ') || 'Ninguna'}.</p>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-slate-gray leading-relaxed p-2 bg-gray-50 rounded-lg italic">
+                      Las comisiones inmobiliarias se calculan sobre el **Valor Real**, mientras que los aportes de escritura se basan en el **Valor a Declarar**.
+                    </p>
+                    <div className="p-3 bg-yellow-50 rounded-xl border border-yellow-200 text-[10px] text-yellow-800">
+                      <strong>Nota Gastos:</strong> Los valores notariales son simulados según usos y costumbres y sujetos a liquidación final del Escribano.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Main Results Display */}
+      <div className="flex-1 bg-white/[0.03] rounded-2xl p-4 border border-white/5 space-y-4">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center border-b border-white/10 pb-3">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase text-slate-gray font-bold tracking-widest mb-1">Comisión Total Agencia</span>
+              <span className="text-2xl font-bold text-white tracking-tight">{formatCurrency(results.totalAgency)}</span>
+            </div>
+            {isOfficeOnly && (
+               <span className="bg-primary-red/20 text-primary-red border border-primary-red/30 text-[10px] font-bold px-3 py-1 rounded-full">GESTIÓN OFICINA</span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+              <span className="text-[10px] uppercase text-slate-gray font-bold mb-2 block">
+                 {results.type === 'ALQUILER' ? 'Propietario Recibe' : 'Valor a Recibir (Vendedor)'}
+              </span>
+              <span className="text-sm font-bold text-white">{formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)}</span>
+            </div>
+            <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+              <span className="text-[10px] uppercase text-slate-gray font-bold mb-2 block">
+                {results.type === 'ALQUILER' ? 'Precio de la Publicación' : 'Valor a Entregar (Comprador)'}
+              </span>
+              <span className="text-sm font-bold text-white">{formatCurrency(results.type === 'ALQUILER' ? opAmount : results.totalOperacion)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Improved Split Breakdown */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-[1px] flex-1 bg-white/10"></div>
+            <span className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em]">Distribución Interna</span>
+            <div className="h-[1px] flex-1 bg-white/10"></div>
+          </div>
+
+          {!isOfficeOnly ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center bg-white/5 px-4 py-2 rounded-lg border border-white/5">
+                  <span className="text-[10px] text-slate-gray uppercase font-bold">Agente: {agentName}</span>
+                  <span className="text-xs font-bold text-white">{formatCurrency(results.agent)}</span>
+                </div>
+                {coAgencyName === 'AGENTE OFICINA' && (
+                  <div className="flex justify-between items-center bg-white/5 px-4 py-2 rounded-lg border border-white/5">
+                    <span className="text-[10px] text-primary-red uppercase font-bold">Agente 2: {coAgentName || '---'}</span>
+                    <span className="text-xs font-bold text-white">{formatCurrency(results.agent2 || 0)}</span>
+                  </div>
+                )}
+                {isCompartida && coAgencyName !== 'AGENTE OFICINA' && (
+                  <div className="flex justify-between items-center bg-white/10 px-4 py-2 rounded-lg border border-primary-red/30">
+                    <span className="text-[10px] text-slate-gray uppercase font-bold">Colega: {coAgencyName || 'OTRA AGENCIA'}</span>
+                    <span className="text-xs font-bold text-primary-red">{formatCurrency(results.externalShareAmount || 0)}</span>
+                  </div>
+                )}
+              </div>
+              <div className="bg-primary-red/10 p-4 rounded-xl border border-primary-red/10 flex flex-col justify-center items-center text-center">
+                <span className="text-[10px] text-primary-red font-bold uppercase mb-2">Neto Oficina</span>
+                <span className="text-xl font-bold text-white">{formatCurrency(results.officeNet)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-primary-red/5 p-4 rounded-xl border border-primary-red/10 text-center">
+               <span className="text-xs text-primary-red font-bold uppercase tracking-widest">Liquidación Directa TIRANTE®</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-3">
+             <div className="bg-white/5 p-3 rounded-xl text-center border border-white/5">
+                <div className="text-[10px] text-slate-gray font-bold uppercase mb-2">Socio 25%</div>
+                <div className="text-xs font-bold text-white">{formatCurrency(results.socio)}</div>
+             </div>
+             <div className="bg-white/5 p-3 rounded-xl text-center border border-white/5">
+                <div className="text-[10px] text-slate-gray font-bold uppercase mb-2">Gere. 25%</div>
+                <div className="text-xs font-bold text-white">{formatCurrency(results.gerente)}</div>
+             </div>
+             <div className="bg-white/5 p-3 rounded-xl text-center border border-white/5">
+                <div className="text-[10px] text-slate-gray font-bold uppercase mb-2">Caja 50%</div>
+                <div className="text-xs font-bold text-white">{formatCurrency(results.cajaOficina)}</div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onClick={generatePDF}
+        className="w-full bg-primary-red text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs mt-6 hover:bg-red-600 transition-all shadow-lg active:scale-95 shadow-red-900/40 flex items-center justify-center gap-2"
+      >
+        <ClipboardList size={14} />
+        Descargar Liquidación PDF
+      </button>
+
+      <button 
+        onClick={async () => {
+          try {
+            const response = await fetch('/src/App.tsx');
+            const code = await response.text();
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Tirante_BienesRaices_Codigo.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            alert('No se pudo obtener el código fuente. Intente copiarlo desde el editor.');
+          }
+        }}
+        className="w-full bg-white/5 text-slate-gray py-2 rounded-xl font-bold uppercase tracking-widest text-[9px] mt-3 hover:bg-white/10 transition-all flex items-center justify-center gap-2 opacity-60 hover:opacity-100"
+      >
+        <span>Descargar Código Fuente (.txt)</span>
+      </button>
+    </div>
+  );
+};
+
+export default function App() {
+  return (
+    <div className="min-h-screen bg-bg-gray flex flex-col items-center justify-center p-4 md:p-8">
+      {/* Branding Overlay */}
+      <div className="mb-10 flex flex-col items-center w-full max-w-5xl">
+         <div className="flex flex-col md:flex-row items-center justify-center gap-6 px-4">
+          <div className="bg-dark-blue px-8 py-3 rounded-sm shadow-2xl relative">
+            <div className="text-white font-extrabold text-4xl md:text-5xl tracking-[-0.04em] flex items-start">
+              TIRANTE<span className="text-lg md:text-xl ml-0.5 mt-1">®</span>
+            </div>
+            <div className="absolute -bottom-px left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary-red to-transparent opacity-50"></div>
+          </div>
+          <div className="flex flex-col items-center md:items-start md:border-l-2 md:border-primary-red md:pl-6 md:py-1">
+            <span className="text-dark-blue font-bold text-3xl md:text-4xl tracking-[0.05em] uppercase leading-none">Bienes Raices</span>
+            <div className="text-[10px] text-slate-gray font-bold uppercase tracking-[0.4em] mt-3">Pinamar • Costa Esmeralda</div>
+          </div>
+        </div>
+      </div>
+
+      <main className="w-full max-w-5xl h-auto">
+        <LiquidationEngine />
+      </main>
+
+      <footer className="mt-16 text-[10px] text-slate-gray font-bold uppercase tracking-[0.3em] flex flex-col items-center gap-3 opacity-40">
+        <div>Diego Ariel Tirante • Broker Inmobiliario</div>
+        <div className="flex items-center gap-2">
+          <span>© 2024</span>
+          <span className="w-1 h-1 bg-slate-gray rounded-full"></span>
+          <span>tirante bienes raices</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
