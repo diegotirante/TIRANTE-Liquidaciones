@@ -24,7 +24,8 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  Target
+  Target,
+  RotateCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -34,11 +35,14 @@ type CaptationSource = 'PROPIA' | 'OFICINA';
 interface SavedLiquidation {
   id: string;
   opNumber: string;
+  propertyCode: string;
   date: string;
   type: 'VENTA' | 'ALQUILER';
   agentName: string;
+  agent2Name?: string;
   totalAgencyUSD: number;
-  agentCommissionUSD: number;
+  agent1CommissionUSD: number;
+  agent2CommissionUSD?: number;
   officeNetUSD: number;
   socioUSD: number;
   gerenteUSD: number;
@@ -53,6 +57,7 @@ interface Withdrawal {
   boxId: string;
   amountUSD: number;
   date: string;
+  recipient: string;
   performedBy: string;
 }
 
@@ -60,7 +65,7 @@ interface Withdrawal {
 
 const LiquidationEngine = () => {
   const [activeTab, setActiveTab] = useState<'VENTA' | 'ALQUILER'>('ALQUILER');
-  const [opAmount, setOpAmount] = useState<number>(3500);
+  const [opAmount, setOpAmount] = useState<number>(0);
   const [source, setSource] = useState<CaptationSource>('PROPIA');
   
   // Office Only Mode
@@ -69,13 +74,14 @@ const LiquidationEngine = () => {
   // PDF & Data Fields
   const [agentName, setAgentName] = useState<string>('Oficina Central');
   const [opNumber, setOpNumber] = useState<string>('OP-0001');
+  const [propertyCode, setPropertyCode] = useState<string>('DT| ');
   
   // Currency Conversion
   const [isPesos, setIsPesos] = useState<boolean>(false);
   const [exchangeRate, setExchangeRate] = useState<number>(1050);
  
   // States for Rentals
-  const [cleaningGastos, setCleaningGastos] = useState<number>(77);
+  const [cleaningGastos, setCleaningGastos] = useState<number>(0);
   const [coAgentName, setCoAgentName] = useState<string>('');
   
   // States for Sales
@@ -83,9 +89,9 @@ const LiquidationEngine = () => {
   const [commVendedorPct, setCommVendedorPct] = useState<number>(4);
   const [commCompradorPct, setCommCompradorPct] = useState<number>(4);
   const [escrituraPct, setEscrituraPct] = useState<number>(3.6);
-  const [parcelario, setParcelario] = useState<number>(75);
-  const [inhibicion, setInhibicion] = useState<number>(18);
-  const [valorDeclarar, setValorDeclarar] = useState<number>(3000);
+  const [parcelario, setParcelario] = useState<number>(0);
+  const [inhibicion, setInhibicion] = useState<number>(0);
+  const [valorDeclarar, setValorDeclarar] = useState<number>(0);
 
   const [isTracto, setIsTracto] = useState<boolean>(false);
   const [notaryFeePct, setNotaryFeePct] = useState<number>(2);
@@ -130,14 +136,42 @@ const LiquidationEngine = () => {
   }, [withdrawals]);
 
   const handleSaveLiquidation = () => {
+    const id = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : `liq-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    let agent2Val = undefined;
+    let agent2Nm = undefined;
+
+    if (activeTab === 'VENTA') {
+      if (coAgencyName === 'AGENTE OFICINA') {
+        agent2Val = results.agent2;
+        agent2Nm = coAgentName;
+      } else if (isCompartida && coAgencyName) {
+        // En ventas compartidas con externas, si el usuario quiere trackearlo en caja
+        // Cargamos el monto cedido como deuda de agente a liquidar
+        agent2Val = results.externalShareAmount || 0;
+        agent2Nm = coAgencyName;
+      }
+    } else {
+      // Alquiler
+      if (coAgentName) {
+        agent2Val = results.agent2 || 0; // Necesitamos asegurar que results tenga agent2 en alquiler si aplica
+        agent2Nm = coAgentName;
+      }
+    }
+
     const newLiq: SavedLiquidation = {
-      id: crypto.randomUUID(),
+      id,
       opNumber: opNumber || `OP-${Date.now().toString().slice(-4)}`,
+      propertyCode: propertyCode,
       date: new Date().toISOString(),
       type: activeTab,
       agentName: agentName,
+      agent2Name: agent2Nm,
       totalAgencyUSD: results.totalAgency,
-      agentCommissionUSD: results.agent + (results.agent2 || 0),
+      agent1CommissionUSD: results.agent,
+      agent2CommissionUSD: agent2Val,
       officeNetUSD: results.officeNet,
       socioUSD: results.socio,
       gerenteUSD: results.gerente,
@@ -145,7 +179,7 @@ const LiquidationEngine = () => {
       cleaningUSD: activeTab === 'ALQUILER' ? cleaningGastos : 0,
       invoiced: isFacturado,
       snapshot: {
-        activeTab, opAmount, opNumber, agentName, results, isPesos, exchangeRate,
+        activeTab, opAmount, opNumber, propertyCode, agentName, results, isPesos, exchangeRate,
         cleaningGastos, valorDeclarar, reservaMonto, reservaFecha, commCompradorPct,
         commVendedorPct, notaryFeePct, saleMode, escrituraPct, itiPct, isTracto,
         tasaTractoPct, certificadosMonto, inscripcionMonto, hasDeudas, deudasMonto,
@@ -177,44 +211,85 @@ const LiquidationEngine = () => {
     setCoAgentName('');
     setShareBuyer(false);
     setShareSeller(false);
+    setPropertyCode('DT| ');
 
     alert('Liquidación guardada y valores reseteados.');
   };
 
   const deleteLiquidation = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este registro?')) {
-      setSavedLiquidations(prev => prev.filter(l => l.id !== id));
+    if (!id) return;
+    const confirmDelete = window.confirm('¿Está seguro de eliminar esta operación? Esto afectará todos los saldos de las cajas de forma permanente.');
+    if (confirmDelete) {
+      setSavedLiquidations(prev => {
+        const newState = prev.filter(l => l.id !== id);
+        // Force sync with localStorage just in case to ensure persistence
+        localStorage.setItem('tirante_liquidations', JSON.stringify(newState));
+        return newState;
+      });
+    }
+  };
+
+  const resetSystem = () => {
+    if (window.confirm('⚠️ ATENCIÓN: Esta acción ELIMINARÁ TODOS los registros, retiros e historial de forma PERMANENTE como si la oficina recién empezara. ¿Desea continuar?')) {
+      setSavedLiquidations([]);
+      setWithdrawals([]);
+      localStorage.removeItem('tirante_liquidations');
+      localStorage.removeItem('tirante_withdrawals');
+      
+      // Reset current form
+      setOpNumber('OP-0001');
+      setOpAmount(0);
+      setValorDeclarar(0);
+      setPropertyCode('DT| ');
+      setCleaningGastos(0);
+      setAgentName('Oficina Central');
+      
+      alert('Sistema reiniciado. Todos los valores están en cero.');
     }
   };
 
   const handleWithdrawal = (boxId: string) => {
-    const amount = prompt(`Ingrese el monto a retirar de ${boxId} (USD):`);
-    if (amount && !isNaN(Number(amount))) {
-      const newWithdrawal: Withdrawal = {
-        id: crypto.randomUUID(),
-        boxId,
-        amountUSD: Number(amount),
-        date: new Date().toISOString(),
-        performedBy: agentName
-      };
-      setWithdrawals(prev => [...prev, newWithdrawal]);
-    }
+    const amount = prompt(`REGISTRO DE RETIRO - ${boxId}\n\nIngrese el VALOR (USD):`);
+    if (!amount || isNaN(Number(amount))) return;
+
+    const recipient = prompt("A QUIEN SE LE PAGA:");
+    if (!recipient) return;
+
+    const performedBy = prompt("QUIEN REALIZA EL PAGO:", agentName);
+    if (!performedBy) return;
+
+    const newWithdrawal: Withdrawal = {
+      id: `RET-${Date.now().toString().slice(-6)}`,
+      boxId,
+      amountUSD: Number(amount),
+      date: new Date().toISOString(),
+      recipient,
+      performedBy
+    };
+
+    setWithdrawals(prev => [...prev, newWithdrawal]);
+    alert(`Retiro Registrado:\nID: ${newWithdrawal.id}\nValor: ${formatCurrency(newWithdrawal.amountUSD)}\nDestino: ${recipient}`);
   };
 
   const getBoxTotal = (boxId: string) => {
     let total = 0;
     savedLiquidations.forEach(l => {
-      if (boxId === 'Agente') total += l.agentCommissionUSD;
-      if (boxId === 'Oficina') total += l.officeNetUSD;
-      if (boxId === 'Socio') total += l.socioUSD;
-      if (boxId === 'Gerente') total += l.gerenteUSD;
-      if (boxId === 'Caja Total') total += l.cajaOficinaUSD;
-      if (boxId === 'Limpieza') total += l.cleaningUSD;
+      // Robust sum including legacy field handling
+      if (boxId === 'Agente') {
+        const a1 = (l as any).agent1CommissionUSD || (l as any).agentCommissionUSD || 0;
+        const a2 = l.agent2CommissionUSD || 0;
+        total += (a1 + a2);
+      }
+      if (boxId === 'Oficina') total += (l.officeNetUSD || 0);
+      if (boxId === 'Socio') total += (l.socioUSD || 0);
+      if (boxId === 'Gerente') total += (l.gerenteUSD || 0);
+      if (boxId === 'Caja Total') total += (l.cajaOficinaUSD || 0);
+      if (boxId === 'Limpieza') total += (l.cleaningUSD || 0);
     });
 
     const withdrawn = withdrawals
       .filter(w => w.boxId === boxId)
-      .reduce((sum, w) => sum + w.amountUSD, 0);
+      .reduce((sum, w) => sum + (w.amountUSD || 0), 0);
 
     return total - withdrawn;
   };
@@ -260,7 +335,15 @@ const LiquidationEngine = () => {
       const agentPct = source === 'PROPIA' ? 0.30 : 0.25;
       const officePct = source === 'PROPIA' ? 0.70 : 0.75; // Increased by 7% (5% Martillero + 2% Captador removed)
       
-      const agent = totalAgency * agentPct;
+      const totalAgentComm = totalAgency * agentPct;
+      let agent1 = totalAgentComm;
+      let agent2 = 0;
+
+      if (coAgentName) {
+        agent1 = totalAgentComm / 2;
+        agent2 = totalAgentComm / 2;
+      }
+
       const officeNet = totalAgency * officePct;
 
       const socio = officeNet * 0.25;
@@ -272,7 +355,7 @@ const LiquidationEngine = () => {
       return { 
         type: 'ALQUILER',
         commInquilino, subTotalLiquidacion, commPropietario, totalAgency, propietarioRecibe,
-        agent, martillero: 0, captador: 0, officeNet, socio, gerente, cajaOficina, gastosOficina, inversionOficina,
+        agent: agent1, agent2, martillero: 0, captador: 0, officeNet, socio, gerente, cajaOficina, gastosOficina, inversionOficina,
         agentPct, officePct, isOfficeOnly: false
       };
     } else {
@@ -416,8 +499,9 @@ const LiquidationEngine = () => {
       
       p_doc.setFontSize(10);
       p_doc.text(`LIQUIDACIÓN: ${context.opNumber}`, 150, 15);
-      p_doc.text(`FECHA: ${date}`, 150, 22);
-      p_doc.text(`AGENTE: ${context.agentName.toUpperCase()}`, 150, 29);
+      p_doc.text(`PROPIEDAD: ${context.propertyCode}`, 150, 22);
+      p_doc.text(`FECHA: ${date}`, 150, 29);
+      p_doc.text(`AGENTE: ${context.agentName.toUpperCase()}`, 150, 36);
     };
 
     addHeader(doc);
@@ -635,6 +719,17 @@ const LiquidationEngine = () => {
             Ventas
           </button>
         </div>
+
+        <div className="flex-1 min-w-[200px]">
+           <label className="text-[10px] text-slate-gray font-black uppercase tracking-widest pl-1 mb-1 block">Código Propiedad</label>
+           <input 
+            type="text" 
+            className="sleek-input py-1.5 font-bold tracking-widest" 
+            value={propertyCode} 
+            onChange={(e) => setPropertyCode(e.target.value)} 
+           />
+        </div>
+
         <div className="flex gap-2">
           <button 
             onClick={() => setIsOfficeOnly(!isOfficeOnly)}
@@ -1349,14 +1444,23 @@ const LiquidationEngine = () => {
           >
             {/* HISTORICAL DASHBOARD */}
             <div className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100">
-               <div className="flex items-center gap-4 mb-8">
-                  <div className="bg-dark-blue p-2.5 rounded-xl">
-                    <History className="text-white w-6 h-6" />
+               <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-dark-blue p-2.5 rounded-xl">
+                      <History className="text-white w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black text-dark-blue uppercase tracking-tighter">Dashboard de Operaciones</h2>
+                      <p className="text-[10px] text-slate-gray font-bold uppercase tracking-widest">Histórico de Liquidaciones Guardadas</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-black text-dark-blue uppercase tracking-tighter">Dashboard de Operaciones</h2>
-                    <p className="text-[10px] text-slate-gray font-bold uppercase tracking-widest">Histórico de Liquidaciones Guardadas</p>
-                  </div>
+                  <button 
+                    onClick={resetSystem}
+                    className="flex items-center gap-2 bg-red-50 text-primary-red px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary-red hover:text-white transition-all border border-primary-red/10"
+                  >
+                    <RotateCcw size={12} />
+                    Reiniciar Sistema
+                  </button>
                </div>
 
                <div className="grid md:grid-cols-2 gap-8">
@@ -1451,17 +1555,34 @@ const LiquidationEngine = () => {
             </div>
 
             {/* FINANCIAL BOXES SECTION */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="h-[1px] w-full bg-gray-200"></div>
               <h2 className="text-center text-[10px] font-black text-slate-gray uppercase tracking-[0.5em] py-4">Centro de Gestión Financiera</h2>
               
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {/* PRIMARY BOX: TOTAL OFICINA */}
+              <div className="flex justify-center mb-6">
+                <button 
+                  onClick={() => setActiveBox(activeBox === 'Caja Total' ? null : 'Caja Total')}
+                  className="group relative flex flex-col items-center justify-between p-8 bg-white rounded-[40px] shadow-2xl border-4 border-amber-500/10 hover:border-amber-500/30 transition-all active:scale-95 w-full max-w-md overflow-hidden"
+                >
+                  <div className="bg-amber-500 p-4 rounded-3xl text-white mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-amber-500/40">
+                    <LayoutDashboard size={32} />
+                  </div>
+                  <div className="text-center">
+                    <span className="text-[10px] font-black uppercase text-slate-gray tracking-[0.3em] block mb-2">Caja Total Oficina</span>
+                    <span className="text-3xl font-black text-dark-blue">{formatCurrency(getBoxTotal('Caja Total'))}</span>
+                  </div>
+                  {activeBox === 'Caja Total' && <div className="absolute bottom-0 left-0 w-full h-2 bg-amber-500"></div>}
+                </button>
+              </div>
+
+              {/* OTHER BOXES */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {[
                   { id: 'Agente', label: 'Agente a Liquidar', icon: <Users size={16} />, color: 'bg-emerald-500', value: getBoxTotal('Agente') },
                   { id: 'Oficina', label: 'Caja Oficina', icon: <Building2 size={16} />, color: 'bg-dark-blue', value: getBoxTotal('Oficina') },
                   { id: 'Socio', label: 'Caja Socio', icon: <Wallet size={16} />, color: 'bg-primary-red', value: getBoxTotal('Socio') },
                   { id: 'Gerente', label: 'Caja Gerente', icon: <Target size={16} />, color: 'bg-indigo-600', value: getBoxTotal('Gerente') },
-                  { id: 'Caja Total', label: 'Caja Total Oficina', icon: <LayoutDashboard size={16} />, color: 'bg-amber-500', value: getBoxTotal('Caja Total') },
                   { id: 'Limpieza', label: 'Caja Limpieza', icon: <ArrowDownCircle size={16} />, color: 'bg-teal-600', value: getBoxTotal('Limpieza') },
                 ].map(box => (
                   <button 
@@ -1511,30 +1632,79 @@ const LiquidationEngine = () => {
                                 <table className="w-full text-left border-collapse text-[10px]">
                                    <thead className="bg-white/10 text-white/50 uppercase font-black">
                                       <tr>
-                                        <th className="px-4 py-3">Operación</th>
-                                        <th className="px-4 py-3">Fecha</th>
+                                        <th className="px-4 py-3">{activeBox === 'Agente' ? 'Agente' : 'Tipo / Prop.'}</th>
+                                        <th className="px-4 py-3">ID / Fecha</th>
                                         <th className="px-4 py-3 text-right">Monto</th>
                                       </tr>
                                    </thead>
                                    <tbody className="text-white/80 divide-y divide-white/5">
-                                      {savedLiquidations.map(l => {
-                                        let amount = 0;
-                                        if (activeBox === 'Agente') amount = l.agentCommissionUSD;
-                                        if (activeBox === 'Oficina') amount = l.officeNetUSD;
-                                        if (activeBox === 'Socio') amount = l.socioUSD;
-                                        if (activeBox === 'Gerente') amount = l.gerenteUSD;
-                                        if (activeBox === 'Caja Total') amount = l.cajaOficinaUSD;
-                                        if (activeBox === 'Limpieza') amount = l.cleaningUSD;
+                                      {savedLiquidations.flatMap(l => {
+                                        const entries: any[] = [];
+                                        
+                                        if (activeBox === 'Agente') {
+                                          const a1 = l.agent1CommissionUSD || (l as any).agentCommissionUSD || 0;
+                                          if (a1 > 0) {
+                                            entries.push({
+                                              id: l.id + '-a1',
+                                              label: l.agentName,
+                                              subLabel: l.propertyCode || 'N/A',
+                                              op: l.opNumber,
+                                              date: l.date,
+                                              amount: a1,
+                                              snapshot: l
+                                            });
+                                          }
+                                          if (l.agent2CommissionUSD && l.agent2CommissionUSD > 0) {
+                                            entries.push({
+                                              id: l.id + '-a2',
+                                              label: l.agent2Name,
+                                              subLabel: l.propertyCode,
+                                              op: l.opNumber,
+                                              date: l.date,
+                                              amount: l.agent2CommissionUSD,
+                                              snapshot: l
+                                            });
+                                          }
+                                        } else {
+                                          let amount = 0;
+                                          if (activeBox === 'Oficina') amount = l.officeNetUSD;
+                                          if (activeBox === 'Socio') amount = l.socioUSD;
+                                          if (activeBox === 'Gerente') amount = l.gerenteUSD;
+                                          if (activeBox === 'Caja Total') amount = l.cajaOficinaUSD;
+                                          if (activeBox === 'Limpieza') amount = l.cleaningUSD;
 
-                                        if (amount === 0) return null;
-                                        return (
-                                          <tr key={l.id}>
-                                            <td className="px-4 py-3 font-bold">{l.opNumber}</td>
-                                            <td className="px-4 py-3 opacity-60">{new Date(l.date).toLocaleDateString()}</td>
-                                            <td className="px-4 py-3 text-right font-black text-emerald-400">+{formatCurrency(amount)}</td>
-                                          </tr>
-                                        );
-                                      })}
+                                          if (amount > 0) {
+                                            entries.push({
+                                              id: l.id,
+                                              label: l.type,
+                                              subLabel: l.propertyCode || 'N/A',
+                                              op: l.opNumber,
+                                              date: l.date,
+                                              amount: amount,
+                                              snapshot: l
+                                            });
+                                          }
+                                        }
+
+                                        return entries;
+                                      }).map(entry => (
+                                        <tr key={entry.id}>
+                                          <td className="px-4 py-3">
+                                            <div className="font-bold uppercase">{entry.label}</div>
+                                            <div className="text-[8px] text-white/40 tracking-wider">{entry.subLabel}</div>
+                                          </td>
+                                          <td className="px-4 py-3">
+                                            <button 
+                                              onClick={() => generatePDF(entry.snapshot)}
+                                              className="font-bold underline decoration-dotted hover:text-primary-red transition-colors"
+                                            >
+                                              {entry.op}
+                                            </button>
+                                            <div className="text-[8px] opacity-40">{new Date(entry.date).toLocaleDateString()}</div>
+                                          </td>
+                                          <td className="px-4 py-3 text-right font-black text-emerald-400">+{formatCurrency(entry.amount)}</td>
+                                        </tr>
+                                      ))}
                                    </tbody>
                                 </table>
                              </div>
