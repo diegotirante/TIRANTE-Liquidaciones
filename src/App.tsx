@@ -1614,7 +1614,7 @@ const LiquidationEngine = () => {
                     <div className="bg-dark-blue rounded-3xl p-8 shadow-inner border border-white/10 relative">
                        <div className="flex justify-between items-center mb-6">
                           <h3 className="text-white font-black uppercase tracking-widest text-sm flex items-center gap-3">
-                             Detalle Detallado: {activeBox}
+                             DETALLE Caja {activeBox === 'Agente' ? 'Agente a Liquidar' : activeBox}
                           </h3>
                           <button 
                             onClick={() => handleWithdrawal(activeBox)}
@@ -1717,21 +1717,25 @@ const LiquidationEngine = () => {
                                 <table className="w-full text-left border-collapse text-[10px]">
                                    <thead className="bg-white/10 text-white/50 uppercase font-black">
                                       <tr>
-                                        <th className="px-4 py-3">ID Retiro</th>
-                                        <th className="px-4 py-3">Fecha</th>
-                                        <th className="px-4 py-3">Por</th>
+                                        <th className="px-4 py-3">ID / Fecha</th>
+                                        <th className="px-4 py-3">Entregado a / Responsable</th>
                                         <th className="px-4 py-3 text-right">Monto</th>
                                       </tr>
                                    </thead>
                                    <tbody className="text-white/80 divide-y divide-white/5">
                                       {withdrawals.filter(w => w.boxId === activeBox).length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-8 text-center opacity-40 font-bold uppercase">No hay retiros registrados</td></tr>
+                                        <tr><td colSpan={3} className="px-4 py-8 text-center opacity-40 font-bold uppercase">No hay retiros registrados</td></tr>
                                       ) : (
                                         withdrawals.filter(w => w.boxId === activeBox).map(w => (
                                           <tr key={w.id}>
-                                            <td className="px-4 py-3 font-mono opacity-60">{w.id.slice(0,8)}</td>
-                                            <td className="px-4 py-3 opacity-60">{new Date(w.date).toLocaleDateString()}</td>
-                                            <td className="px-4 py-3 uppercase font-bold">{w.performedBy}</td>
+                                            <td className="px-4 py-3">
+                                               <div className="font-bold">{w.id}</div>
+                                               <div className="text-[8px] opacity-40">{new Date(w.date).toLocaleDateString()}</div>
+                                             </td>
+                                            <td className="px-4 py-3">
+                                               <div className="font-bold text-primary-red uppercase leading-tight">A: {w.recipient}</div>
+                                               <div className="text-[8px] opacity-40 uppercase tracking-widest leading-tight">Por: {w.performedBy}</div>
+                                             </td>
                                             <td className="px-4 py-3 text-right font-black text-primary-red">-{formatCurrency(w.amountUSD)}</td>
                                           </tr>
                                         ))
