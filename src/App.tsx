@@ -13,14 +13,48 @@ import {
   MapPin, 
   Phone, 
   ClipboardList,
-  Target,
-  DollarSign,
-  PieChart
+  Save,
+  CheckSquare,
+  History,
+  TrendingDown,
+  LayoutDashboard,
+  Wallet,
+  ArrowDownCircle,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  Target
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 // --- Types ---
 type CaptationSource = 'PROPIA' | 'OFICINA';
+
+interface SavedLiquidation {
+  id: string;
+  opNumber: string;
+  date: string;
+  type: 'VENTA' | 'ALQUILER';
+  agentName: string;
+  totalAgencyUSD: number;
+  agentCommissionUSD: number;
+  officeNetUSD: number;
+  socioUSD: number;
+  gerenteUSD: number;
+  cajaOficinaUSD: number;
+  cleaningUSD: number;
+  invoiced: boolean;
+  snapshot: any; // All calculation inputs to regenerate PDF
+}
+
+interface Withdrawal {
+  id: string;
+  boxId: string;
+  amountUSD: number;
+  date: string;
+  performedBy: string;
+}
 
 // --- Components ---
 
@@ -70,6 +104,120 @@ const LiquidationEngine = () => {
   const [shareSeller, setShareSeller] = useState<boolean>(false);
 
   const [showExplanation, setShowExplanation] = useState<boolean>(false);
+  const [isFacturado, setIsFacturado] = useState<boolean>(false);
+  
+  // Dashboard & persistence
+  const [savedLiquidations, setSavedLiquidations] = useState<SavedLiquidation[]>(() => {
+    const saved = localStorage.getItem('tirante_liquidations');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>(() => {
+    const saved = localStorage.getItem('tirante_withdrawals');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [showDashboard, setShowDashboard] = useState<boolean>(false);
+  const [activeBox, setActiveBox] = useState<string | null>(null);
+
+  // Auto-save to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('tirante_liquidations', JSON.stringify(savedLiquidations));
+  }, [savedLiquidations]);
+
+  React.useEffect(() => {
+    localStorage.setItem('tirante_withdrawals', JSON.stringify(withdrawals));
+  }, [withdrawals]);
+
+  const handleSaveLiquidation = () => {
+    const newLiq: SavedLiquidation = {
+      id: crypto.randomUUID(),
+      opNumber: opNumber || `OP-${Date.now().toString().slice(-4)}`,
+      date: new Date().toISOString(),
+      type: activeTab,
+      agentName: agentName,
+      totalAgencyUSD: results.totalAgency,
+      agentCommissionUSD: results.agent + (results.agent2 || 0),
+      officeNetUSD: results.officeNet,
+      socioUSD: results.socio,
+      gerenteUSD: results.gerente,
+      cajaOficinaUSD: results.cajaOficina,
+      cleaningUSD: activeTab === 'ALQUILER' ? cleaningGastos : 0,
+      invoiced: isFacturado,
+      snapshot: {
+        activeTab, opAmount, opNumber, agentName, results, isPesos, exchangeRate,
+        cleaningGastos, valorDeclarar, reservaMonto, reservaFecha, commCompradorPct,
+        commVendedorPct, notaryFeePct, saleMode, escrituraPct, itiPct, isTracto,
+        tasaTractoPct, certificadosMonto, inscripcionMonto, hasDeudas, deudasMonto,
+        isCompartida, coAgencyName, coAgentName, shareBuyer, shareSeller,
+        isOfficeOnly, date: new Date().toLocaleDateString()
+      }
+    };
+
+    setSavedLiquidations(prev => [newLiq, ...prev]);
+    
+    // Auto Increment & Reset
+    const match = opNumber.match(/(\d+)/);
+    if (match) {
+      const num = parseInt(match[0]);
+      const newNum = (num + 1).toString().padStart(match[0].length, '0');
+      setOpNumber(opNumber.replace(match[0], newNum));
+    }
+    
+    setOpAmount(0);
+    setValorDeclarar(0);
+    setCleaningGastos(0);
+    setReservaMonto(0);
+    setReservaFecha('');
+    setDeudasMonto(0);
+    setHasDeudas(false);
+    setIsCompartida(false);
+    setIsFacturado(false);
+    setCoAgencyName('');
+    setCoAgentName('');
+    setShareBuyer(false);
+    setShareSeller(false);
+
+    alert('Liquidación guardada y valores reseteados.');
+  };
+
+  const deleteLiquidation = (id: string) => {
+    if (confirm('¿Está seguro de eliminar este registro?')) {
+      setSavedLiquidations(prev => prev.filter(l => l.id !== id));
+    }
+  };
+
+  const handleWithdrawal = (boxId: string) => {
+    const amount = prompt(`Ingrese el monto a retirar de ${boxId} (USD):`);
+    if (amount && !isNaN(Number(amount))) {
+      const newWithdrawal: Withdrawal = {
+        id: crypto.randomUUID(),
+        boxId,
+        amountUSD: Number(amount),
+        date: new Date().toISOString(),
+        performedBy: agentName
+      };
+      setWithdrawals(prev => [...prev, newWithdrawal]);
+    }
+  };
+
+  const getBoxTotal = (boxId: string) => {
+    let total = 0;
+    savedLiquidations.forEach(l => {
+      if (boxId === 'Agente') total += l.agentCommissionUSD;
+      if (boxId === 'Oficina') total += l.officeNetUSD;
+      if (boxId === 'Socio') total += l.socioUSD;
+      if (boxId === 'Gerente') total += l.gerenteUSD;
+      if (boxId === 'Caja Total') total += l.cajaOficinaUSD;
+      if (boxId === 'Limpieza') total += l.cleaningUSD;
+    });
+
+    const withdrawn = withdrawals
+      .filter(w => w.boxId === boxId)
+      .reduce((sum, w) => sum + w.amountUSD, 0);
+
+    return total - withdrawn;
+  };
 
   const formatCurrency = (val: number) => {
     // Round to avoid decimals as requested
@@ -240,9 +388,20 @@ const LiquidationEngine = () => {
     }
   }, [activeTab, opAmount, source, cleaningGastos, saleMode, commVendedorPct, commCompradorPct, escrituraPct, parcelario, inhibicion, isTracto, notaryFeePct, itiPct, certificadosMonto, inscripcionMonto, isOfficeOnly, shareBuyer, shareSeller, valorDeclarar, deudasMonto, hasDeudas, tasaTractoPct, coAgencyName, reservaMonto, reservaFecha]);
 
-  const generatePDF = () => {
+  const generatePDF = (historyItem?: SavedLiquidation) => {
     const doc = new jsPDF();
-    const date = new Date().toLocaleDateString();
+    
+    // Determine source data (history or current state)
+    const context = historyItem ? historyItem.snapshot : {
+      activeTab, opAmount, opNumber, agentName, results, isPesos, exchangeRate,
+      cleaningGastos, valorDeclarar, reservaMonto, reservaFecha, commCompradorPct,
+      commVendedorPct, notaryFeePct, saleMode, escrituraPct, itiPct, isTracto,
+      tasaTractoPct, certificadosMonto, inscripcionMonto, hasDeudas, deudasMonto,
+      isCompartida, coAgencyName, coAgentName, shareBuyer, shareSeller,
+      isOfficeOnly, date: new Date().toLocaleDateString()
+    };
+
+    const date = context.date || new Date().toLocaleDateString();
     
     const addHeader = (p_doc: jsPDF) => {
       p_doc.setFillColor(20, 36, 69); // Dark Blue
@@ -256,44 +415,55 @@ const LiquidationEngine = () => {
       p_doc.text('BIENES RAICES', 15, 30);
       
       p_doc.setFontSize(10);
-      p_doc.text(`LIQUIDACIÓN: ${opNumber}`, 150, 15);
+      p_doc.text(`LIQUIDACIÓN: ${context.opNumber}`, 150, 15);
       p_doc.text(`FECHA: ${date}`, 150, 22);
-      p_doc.text(`AGENTE: ${agentName.toUpperCase()}`, 150, 29);
+      p_doc.text(`AGENTE: ${context.agentName.toUpperCase()}`, 150, 29);
     };
 
     addHeader(doc);
 
+    // Helper to format currency inside PDF using context
+    const pdfFormat = (val: number) => {
+      const amount = Math.round(context.isPesos ? val * context.exchangeRate : val);
+      return new Intl.NumberFormat('es-AR', {
+        style: 'currency',
+        currency: context.isPesos ? 'ARS' : 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(amount);
+    };
+
     // Body Title
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
-    doc.text(`INFORME DE LIQUIDACIÓN - ${activeTab === 'ALQUILER' ? 'ALQUILER TEMPORAL' : 'VENTA INMOBILIARIA'}`, 15, 55);
+    doc.text(`INFORME DE LIQUIDACIÓN - ${context.activeTab === 'ALQUILER' ? 'ALQUILER TEMPORAL' : 'VENTA INMOBILIARIA'}`, 15, 55);
     
     // Summary Table
     const summaryData = [
-      [activeTab === 'ALQUILER' ? 'Monto Total Operación (Inclusive)' : 'Monto Real de Venta', formatCurrency(opAmount)],
+      [context.activeTab === 'ALQUILER' ? 'Monto Total Operación (Inclusive)' : 'Monto Real de Venta', pdfFormat(context.opAmount)],
     ];
 
-    if (activeTab === 'VENTA') {
-      summaryData.push(['Valor a Declarar', formatCurrency(valorDeclarar)]);
+    if (context.activeTab === 'VENTA') {
+      summaryData.push(['Valor a Declarar', pdfFormat(context.valorDeclarar)]);
     }
 
-    if (activeTab === 'VENTA' && reservaMonto > 0) {
-      summaryData.push(['(-) SEÑA DE RESERVA RECIBIDA', `-${formatCurrency(reservaMonto)}`]);
-      const restaAbonar = results.totalAgency - reservaMonto;
+    if (context.activeTab === 'VENTA' && context.reservaMonto > 0) {
+      summaryData.push(['(-) SEÑA DE RESERVA RECIBIDA', `-${pdfFormat(context.reservaMonto)}`]);
+      const restaAbonar = context.results.totalAgency - context.reservaMonto;
       if (restaAbonar > 0) {
-        summaryData.push(['RESTA ABONAR COMISIÓN INMOBILIARIA', formatCurrency(restaAbonar)]);
+        summaryData.push(['RESTA ABONAR COMISIÓN INMOBILIARIA', pdfFormat(restaAbonar)]);
       } else {
         summaryData.push(['COMISIÓN TOTALMENTE CUBIERTA', 'Saldado']);
       }
     }
 
     summaryData.push(
-      ['Comisión Comprador/Inquilino', formatCurrency(activeTab === 'ALQUILER' ? results.commInquilino : results.commComprador)],
-      ['Comisión Vendedor/Propietario', formatCurrency(activeTab === 'ALQUILER' ? results.commPropietario! : results.commVendedor)],
-      ['TOTAL COMISIÓN AGENCIA', formatCurrency(results.totalAgency)],
+      ['Comisión Comprador/Inquilino', pdfFormat(context.activeTab === 'ALQUILER' ? context.results.commInquilino : context.results.commComprador)],
+      ['Comisión Vendedor/Propietario', pdfFormat(context.activeTab === 'ALQUILER' ? context.results.commPropietario! : context.results.commVendedor)],
+      ['TOTAL COMISIÓN AGENCIA', pdfFormat(context.results.totalAgency)],
       ['-----------------------', '-----------------------'],
-      [activeTab === 'ALQUILER' ? 'Propietario Recibe' : 'MONTO NETO A RECIBIR (Vendedor)', formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)],
-      [activeTab === 'ALQUILER' ? 'Precio de la Publicación' : 'MONTO TOTAL A ENTREGAR (Comprador)', formatCurrency(activeTab === 'ALQUILER' ? opAmount : results.totalOperacion)],
+      [context.activeTab === 'ALQUILER' ? 'Propietario Recibe' : 'MONTO NETO A RECIBIR (Vendedor)', pdfFormat(context.results.type === 'ALQUILER' ? context.results.propietarioRecibe : context.results.vendedorRecibe)],
+      [context.activeTab === 'ALQUILER' ? 'Precio de la Publicación' : 'MONTO TOTAL A ENTREGAR (Comprador)', pdfFormat(context.activeTab === 'ALQUILER' ? context.opAmount : context.results.totalOperacion)],
     );
 
     autoTable(doc, {
@@ -304,25 +474,25 @@ const LiquidationEngine = () => {
       headStyles: { fillColor: [255, 9, 62] } // Primary Red
     });
 
-    if (activeTab === 'ALQUILER') {
+    if (context.activeTab === 'ALQUILER') {
        const finalYTable = (doc as any).lastAutoTable.finalY || 100;
        doc.setFontSize(12);
        doc.text('INGENIERÍA DE LA OPERACIÓN (DESGLOSE)', 15, finalYTable + 10);
        
        const alqData = [
-         ['VALOR PUBLIACIÓN (Total p/Inquilino)', formatCurrency(opAmount)],
+         ['VALOR PUBLIACIÓN (Total p/Inquilino)', pdfFormat(context.opAmount)],
          ['----------------------------', '----------------------------'],
-         ['Valor Alquiler (Declarado)', formatCurrency(results.type === 'ALQUILER' ? results.subTotalLiquidacion : 0)],
-         ['Comisión Inquilino (10%)', formatCurrency(results.type === 'ALQUILER' ? results.commInquilino : 0)],
-         ['Fondo de Limpieza', formatCurrency(cleaningGastos)],
+         ['Valor Alquiler (Declarado)', pdfFormat(context.results.type === 'ALQUILER' ? context.results.subTotalLiquidacion : 0)],
+         ['Comisión Inquilino (10%)', pdfFormat(context.results.type === 'ALQUILER' ? context.results.commInquilino : 0)],
+         ['Fondo de Limpieza', pdfFormat(context.cleaningGastos)],
          ['----------------------------', '----------------------------'],
          ['DESGLOSE PARA PROPIETARIO', ''],
-         ['Monto Cobrado a Inquilino', formatCurrency(opAmount)],
-         ['(-) Fondo de Limpieza', `-${formatCurrency(cleaningGastos)}`],
-         ['(-) Comisión Inquilino (10%)', `-${formatCurrency(results.type === 'ALQUILER' ? results.commInquilino : 0)}`],
-         ['VALOR ALQUILER CONTRATO', formatCurrency(results.type === 'ALQUILER' ? results.subTotalLiquidacion : 0)],
-         ['(-) Comisión Propietario (10%)', `-${formatCurrency(results.type === 'ALQUILER' ? results.commPropietario : 0)}`],
-         ['SALDO NETO A LIQUIDAR', formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : 0)],
+         ['Monto Cobrado a Inquilino', pdfFormat(context.opAmount)],
+         ['(-) Fondo de Limpieza', `-${pdfFormat(context.cleaningGastos)}`],
+         ['(-) Comisión Inquilino (10%)', `-${pdfFormat(context.results.type === 'ALQUILER' ? context.results.commInquilino : 0)}`],
+         ['VALOR ALQUILER CONTRATO', pdfFormat(context.results.type === 'ALQUILER' ? context.results.subTotalLiquidacion : 0)],
+         ['(-) Comisión Propietario (10%)', `-${pdfFormat(context.results.type === 'ALQUILER' ? context.results.commPropietario : 0)}`],
+         ['SALDO NETO A LIQUIDAR', pdfFormat(context.results.type === 'ALQUILER' ? context.results.propietarioRecibe : 0)],
        ];
 
        autoTable(doc, {
@@ -334,37 +504,37 @@ const LiquidationEngine = () => {
        });
     }
 
-    if (activeTab === 'VENTA') {
+    if (context.activeTab === 'VENTA') {
        const finalYTable = (doc as any).lastAutoTable.finalY || 100;
        doc.text('SIMULACIÓN DE GASTOS DE ESCRITURACIÓN', 15, finalYTable + 10);
        
        const notaryData = [
          ['DETALLE DE CIERRE - COMPRADOR', ''],
-         ['Precio de Venta del Inmueble', formatCurrency(opAmount)],
-         [`Comisión Inmobiliaria (${commCompradorPct}%)`, formatCurrency(results.commComprador)],
-         [`Impuesto de Sellos (${(saleMode === 'COMPARTIDO' ? escrituraPct / 2 : escrituraPct).toFixed(1)}%)`, formatCurrency(results.sellosComprador)],
-         [`Honorarios Escribanía (${notaryFeePct}%)`, formatCurrency(results.honorariosEscribano)],
-         ['Tasas, Certificados e Inscripción', formatCurrency(results.inscripcionMonto)],
-         ...(saleMode === 'LIBRE' ? [
-            ['Aportes Vendedor (Asumidos)', formatCurrency(results.iti + results.certificadosMonto + results.parcelario + results.sucesionJudicial + results.tasaTracto + (hasDeudas ? deudasMonto : 0))]
+         ['Precio de Venta del Inmueble', pdfFormat(context.opAmount)],
+         [`Comisión Inmobiliaria (${context.commCompradorPct}%)`, pdfFormat(context.results.commComprador)],
+         [`Impuesto de Sellos (${(context.saleMode === 'COMPARTIDO' ? context.escrituraPct / 2 : context.escrituraPct).toFixed(1)}%)`, pdfFormat(context.results.sellosComprador)],
+         [`Honorarios Escribanía (${context.notaryFeePct}%)`, pdfFormat(context.results.honorariosEscribano)],
+         ['Tasas, Certificados e Inscripción', pdfFormat(context.results.inscripcionMonto)],
+         ...(context.saleMode === 'LIBRE' ? [
+            ['Aportes Vendedor (Asumidos)', pdfFormat(context.results.iti + context.results.certificadosMonto + context.results.parcelario + context.results.sucesionJudicial + context.results.tasaTracto + (context.hasDeudas ? context.deudasMonto : 0))]
          ] : []),
-         ['TOTAL A ENTREGAR POR COMPRADOR', formatCurrency(results.totalOperacion)],
-         ...(reservaMonto > 0 ? [
-            [`(-) SEÑA DE RESERVA (${reservaFecha})`, `-${formatCurrency(reservaMonto)}`]
+         ['TOTAL A ENTREGAR POR COMPRADOR', pdfFormat(context.results.totalOperacion)],
+         ...(context.reservaMonto > 0 ? [
+            [`(-) SEÑA DE RESERVA (${context.reservaFecha})`, `-${pdfFormat(context.reservaMonto)}`]
          ] : []),
          ['', ''],
          ['DETALLE DE CIERRE - VENDEDOR', ''],
-         ['Precio de Venta del Inmueble', formatCurrency(opAmount)],
-         [`Comisión Inmobiliaria (${commVendedorPct}%)`, `-${formatCurrency(results.commVendedor)}`],
-         ...(saleMode === 'LIBRE' ? [['Gastos Título (Transferidos p/Comprador)', '0']] : [
-            ...(saleMode === 'COMPARTIDO' ? [[`Impuesto de Sellos (${(escrituraPct / 2).toFixed(1)}%)`, `-${formatCurrency(results.sellosVendedor)}`]] : []),
-            [`ITI / Ganancias (${itiPct}%)`, `-${formatCurrency(results.iti)}`],
-            ['Diligenciamientos/Certif. Ley', `-${formatCurrency(results.certificadosMonto)}`],
-            ['Estado Parcelario (Agrimensura)', `-${formatCurrency(results.parcelario)}`],
-            ...(isTracto ? [[`Tasa Tracto (${tasaTractoPct}%)`, `-${formatCurrency(results.tasaTracto)}`], ['Honorarios Sucesión / Gastos Jud.', `-${formatCurrency(results.sucesionJudicial)}`]] : []),
-            ...(hasDeudas ? [['Retención Deudas/Impuestos', `-${formatCurrency(results.deudasMonto)}`]] : []),
+         ['Precio de Venta del Inmueble', pdfFormat(context.opAmount)],
+         [`Comisión Inmobiliaria (${context.commVendedorPct}%)`, `-${pdfFormat(context.results.commVendedor)}`],
+         ...(context.saleMode === 'LIBRE' ? [['Gastos Título (Transferidos p/Comprador)', '0']] : [
+            ...(context.saleMode === 'COMPARTIDO' ? [[`Impuesto de Sellos (${(context.escrituraPct / 2).toFixed(1)}%)`, `-${pdfFormat(context.results.sellosVendedor)}`]] : []),
+            [`ITI / Ganancias (${context.itiPct}%)`, `-${pdfFormat(context.results.iti)}`],
+            ['Diligenciamientos/Certif. Ley', `-${pdfFormat(context.results.certificadosMonto)}`],
+            ['Estado Parcelario (Agrimensura)', `-${pdfFormat(context.results.parcelario)}`],
+            ...(context.isTracto ? [[`Tasa Tracto (${context.tasaTractoPct}%)`, `-${pdfFormat(context.results.tasaTracto)}`], ['Honorarios Sucesión / Gastos Jud.', `-${pdfFormat(context.results.sucesionJudicial)}`]] : []),
+            ...(context.hasDeudas ? [['Retención Deudas/Impuestos', `-${pdfFormat(context.deudasMonto)}`]] : []),
          ]),
-         ['MONTO NETO A RECIBIR POR VENDEDOR', formatCurrency(results.vendedorRecibe)],
+         ['MONTO NETO A RECIBIR POR VENDEDOR', pdfFormat(context.results.vendedorRecibe)],
        ];
 
        autoTable(doc, {
@@ -386,21 +556,21 @@ const LiquidationEngine = () => {
     doc.text('INGENIERÍA DE LA LIQUIDACIÓN (Dist. Interna)', 15, finalYDist);
 
     let distributionData: any[] = [];
-    if (results.isOfficeOnly) {
+    if (context.results.isOfficeOnly) {
        distributionData = [
-        ['Socio (25%)', formatCurrency(results.socio), '......................'],
-        ['Gerente (25%)', formatCurrency(results.gerente), '......................'],
-        ['Oficina/Caja (50%)', formatCurrency(results.cajaOficina), '......................'],
+        ['Socio (25%)', pdfFormat(context.results.socio), '......................'],
+        ['Gerente (25%)', pdfFormat(context.results.gerente), '......................'],
+        ['Oficina/Caja (50%)', pdfFormat(context.results.cajaOficina), '......................'],
       ];
     } else {
       distributionData = [
-        [`Agente 1: ${agentName}`, formatCurrency(results.agent), '......................'],
-        ...(coAgencyName === 'AGENTE OFICINA' ? [[`Agente 2: ${coAgentName || '---'}`, formatCurrency(results.agent2 || 0), '......................']] : []),
-        ...(results.type === 'VENTA' && results.externalShareAmount! > 0 ? [[`Colega: ${coAgencyName}`, formatCurrency(results.externalShareAmount), '......................']] : []),
-        ['OFICINA NETO', formatCurrency(results.officeNet), 'N/A'],
-        ['Socio (25% s/Neto)', formatCurrency(results.socio), '......................'],
-        ['Gerente (25% s/Neto)', formatCurrency(results.gerente), '......................'],
-        ['Caja Oficina (50% s/Neto)', formatCurrency(results.cajaOficina), '......................'],
+        [`Agente 1: ${context.agentName}`, pdfFormat(context.results.agent), '......................'],
+        ...(context.coAgencyName === 'AGENTE OFICINA' ? [[`Agente 2: ${context.coAgentName || '---'}`, pdfFormat(context.results.agent2 || 0), '......................']] : []),
+        ...(context.results.type === 'VENTA' && context.results.externalShareAmount! > 0 ? [[`Colega: ${context.coAgencyName}`, pdfFormat(context.results.externalShareAmount), '......................']] : []),
+        ['OFICINA NETO', pdfFormat(context.results.officeNet), 'N/A'],
+        ['Socio (25% s/Neto)', pdfFormat(context.results.socio), '......................'],
+        ['Gerente (25% s/Neto)', pdfFormat(context.results.gerente), '......................'],
+        ['Caja Oficina (50% s/Neto)', pdfFormat(context.results.cajaOficina), '......................'],
       ];
     }
 
@@ -413,18 +583,18 @@ const LiquidationEngine = () => {
       styles: { cellPadding: 5 }
     });
 
-    if (activeTab === 'VENTA' && reservaMonto > 0) {
+    if (context.activeTab === 'VENTA' && context.reservaMonto > 0) {
       const finalYSummaryComm = (doc as any).lastAutoTable.finalY + 10;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      const restaAbonar = results.totalAgency - reservaMonto;
+      const restaAbonar = context.results.totalAgency - context.reservaMonto;
       if (restaAbonar > 0) {
         doc.setTextColor(255, 9, 62); // Primary Red
-        doc.text(`TOTAL COMISIÓN: ${formatCurrency(results.totalAgency)} | SEÑA: ${formatCurrency(reservaMonto)}`, 15, finalYSummaryComm);
-        doc.text(`RESTA ABONAR COMISIÓN INMOBILIARIA: ${formatCurrency(restaAbonar)}`, 15, finalYSummaryComm + 6);
+        doc.text(`TOTAL COMISIÓN: ${pdfFormat(context.results.totalAgency)} | SEÑA: ${pdfFormat(context.reservaMonto)}`, 15, finalYSummaryComm);
+        doc.text(`RESTA ABONAR COMISIÓN INMOBILIARIA: ${pdfFormat(restaAbonar)}`, 15, finalYSummaryComm + 6);
       } else {
         doc.setTextColor(0, 128, 0); // Green
-        doc.text(`COMISIÓN TOTALMENTE CUBIERTA POR LA SEÑA (Excedente: ${formatCurrency(Math.abs(restaAbonar))})`, 15, finalYSummaryComm);
+        doc.text(`COMISIÓN TOTALMENTE CUBIERTA POR LA SEÑA (Excedente: ${pdfFormat(Math.abs(restaAbonar))})`, 15, finalYSummaryComm);
       }
     }
 
@@ -432,11 +602,12 @@ const LiquidationEngine = () => {
     doc.setFontSize(10);
     doc.text('Certifico que la presente liquidación responde a los protocolos internos de TIRANTE® Bienes Raices.', 15, finalYSign);
     
-    doc.save(`Liquidacion_${opNumber}_${activeTab.toLowerCase()}.pdf`);
+    doc.save(`Liquidacion_${context.opNumber}_${context.activeTab.toLowerCase()}.pdf`);
   };
 
   return (
-    <div className="bg-dark-blue rounded-3xl p-6 shadow-xl flex flex-col h-full border border-white/5 box-border">
+    <>
+      <div className="bg-dark-blue rounded-3xl p-6 shadow-xl flex flex-col h-full border border-white/5 box-border">
       {/* Header with Title */}
       <div className="mb-6 flex flex-col gap-1.5">
          <div className="flex items-center gap-3">
@@ -1107,9 +1278,28 @@ const LiquidationEngine = () => {
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-3 mt-6">
+        <button 
+          onClick={handleSaveLiquidation}
+          className="flex-1 bg-dark-blue text-white py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-all border border-white/10 flex items-center justify-center gap-2"
+        >
+          <Save size={14} />
+          Guardar Liquidación
+        </button>
+        <label className="flex items-center justify-center gap-2 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:bg-white/10 transition-all px-4">
+          <input 
+            type="checkbox" 
+            checked={isFacturado} 
+            onChange={(e) => setIsFacturado(e.target.checked)}
+            className="w-4 h-4 accent-primary-red"
+          />
+          <span className="text-[10px] font-bold text-slate-gray uppercase">Facturar</span>
+        </label>
+      </div>
+
       <button 
         onClick={generatePDF}
-        className="w-full bg-primary-red text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs mt-6 hover:bg-red-600 transition-all shadow-lg active:scale-95 shadow-red-900/40 flex items-center justify-center gap-2"
+        className="w-full bg-primary-red text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs mt-3 hover:bg-red-600 transition-all shadow-lg active:scale-95 shadow-red-900/40 flex items-center justify-center gap-2"
       >
         <ClipboardList size={14} />
         Descargar Liquidación PDF
@@ -1136,6 +1326,260 @@ const LiquidationEngine = () => {
         <span>Descargar Código Fuente (.txt)</span>
       </button>
     </div>
+
+    {/* DASHBOARD TRANSITION ARROW */}
+    <div className="mt-12 flex items-center gap-4 w-full">
+        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-dark-blue to-primary-red opacity-30"></div>
+        <button 
+          onClick={() => setShowDashboard(!showDashboard)}
+          className="bg-dark-blue p-3 rounded-full border border-white/10 shadow-2xl hover:scale-110 transition-transform active:scale-95 flex items-center justify-center text-white"
+        >
+          {showDashboard ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+        <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-dark-blue to-primary-red opacity-30"></div>
+      </div>
+
+      <AnimatePresence>
+        {showDashboard && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="mt-8 space-y-8 pb-12"
+          >
+            {/* HISTORICAL DASHBOARD */}
+            <div className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100">
+               <div className="flex items-center gap-4 mb-8">
+                  <div className="bg-dark-blue p-2.5 rounded-xl">
+                    <History className="text-white w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-dark-blue uppercase tracking-tighter">Dashboard de Operaciones</h2>
+                    <p className="text-[10px] text-slate-gray font-bold uppercase tracking-widest">Histórico de Liquidaciones Guardadas</p>
+                  </div>
+               </div>
+
+               <div className="grid md:grid-cols-2 gap-8">
+                  {/* ALQUILERES */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black text-dark-blue/40 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
+                       <TrendingUp size={12} /> Alquileres Realizados
+                    </h3>
+                    <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+                       <table className="w-full text-left border-collapse">
+                          <thead className="bg-gray-50 uppercase text-[9px] font-black text-slate-gray tracking-widest">
+                             <tr>
+                                <th className="px-4 py-3">ID Operación</th>
+                                <th className="px-4 py-3 text-center">Fecha</th>
+                                <th className="px-4 py-3 text-right">Comisión Total</th>
+                                <th className="px-4 py-3"></th>
+                             </tr>
+                          </thead>
+                          <tbody className="text-[11px] divide-y divide-gray-50">
+                             {savedLiquidations.filter(l => l.type === 'ALQUILER').length === 0 ? (
+                               <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">No hay registros</td></tr>
+                             ) : (
+                               savedLiquidations.filter(l => l.type === 'ALQUILER').map(l => (
+                                 <tr key={l.id} className="hover:bg-blue-50/30 transition-colors">
+                                   <td className="px-4 py-3 font-bold text-dark-blue">
+                                     <button 
+                                       onClick={() => generatePDF(l)}
+                                       className="hover:text-primary-red transition-colors underline decoration-dotted"
+                                     >
+                                       {l.opNumber}
+                                     </button>
+                                   </td>
+                                   <td className="px-4 py-3 text-center text-gray-500">{new Date(l.date).toLocaleDateString()}</td>
+                                   <td className="px-4 py-3 text-right font-black text-primary-red">{formatCurrency(l.totalAgencyUSD)}</td>
+                                   <td className="px-4 py-3 text-right">
+                                      <button onClick={() => deleteLiquidation(l.id)} className="text-gray-300 hover:text-primary-red transition-colors">
+                                        <Trash2 size={14} />
+                                      </button>
+                                   </td>
+                                 </tr>
+                               ))
+                             )}
+                          </tbody>
+                       </table>
+                    </div>
+                  </div>
+
+                  {/* VENTAS */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black text-dark-blue/40 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
+                       <TrendingUp size={12} /> Ventas Realizadas
+                    </h3>
+                    <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+                       <table className="w-full text-left border-collapse">
+                          <thead className="bg-gray-50 uppercase text-[9px] font-black text-slate-gray tracking-widest">
+                             <tr>
+                                <th className="px-4 py-3">ID Operación</th>
+                                <th className="px-4 py-3 text-center">Fecha</th>
+                                <th className="px-4 py-3 text-right">Comisión Total</th>
+                                <th className="px-4 py-3"></th>
+                             </tr>
+                          </thead>
+                          <tbody className="text-[11px] divide-y divide-gray-50">
+                             {savedLiquidations.filter(l => l.type === 'VENTA').length === 0 ? (
+                               <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">No hay registros</td></tr>
+                             ) : (
+                               savedLiquidations.filter(l => l.type === 'VENTA').map(l => (
+                                 <tr key={l.id} className="hover:bg-red-50/30 transition-colors">
+                                   <td className="px-4 py-3 font-bold text-dark-blue">
+                                      <button 
+                                       onClick={() => generatePDF(l)}
+                                       className="hover:text-primary-red transition-colors underline decoration-dotted"
+                                     >
+                                       {l.opNumber}
+                                     </button>
+                                   </td>
+                                   <td className="px-4 py-3 text-center text-gray-500">{new Date(l.date).toLocaleDateString()}</td>
+                                   <td className="px-4 py-3 text-right font-black text-primary-red">{formatCurrency(l.totalAgencyUSD)}</td>
+                                   <td className="px-4 py-3 text-right">
+                                      <button onClick={() => deleteLiquidation(l.id)} className="text-gray-300 hover:text-primary-red transition-colors">
+                                        <Trash2 size={14} />
+                                      </button>
+                                   </td>
+                                 </tr>
+                               ))
+                             )}
+                          </tbody>
+                       </table>
+                    </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* FINANCIAL BOXES SECTION */}
+            <div className="space-y-4">
+              <div className="h-[1px] w-full bg-gray-200"></div>
+              <h2 className="text-center text-[10px] font-black text-slate-gray uppercase tracking-[0.5em] py-4">Centro de Gestión Financiera</h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {[
+                  { id: 'Agente', label: 'Agente a Liquidar', icon: <Users size={16} />, color: 'bg-emerald-500', value: getBoxTotal('Agente') },
+                  { id: 'Oficina', label: 'Caja Oficina', icon: <Building2 size={16} />, color: 'bg-dark-blue', value: getBoxTotal('Oficina') },
+                  { id: 'Socio', label: 'Caja Socio', icon: <Wallet size={16} />, color: 'bg-primary-red', value: getBoxTotal('Socio') },
+                  { id: 'Gerente', label: 'Caja Gerente', icon: <Target size={16} />, color: 'bg-indigo-600', value: getBoxTotal('Gerente') },
+                  { id: 'Caja Total', label: 'Caja Total Oficina', icon: <LayoutDashboard size={16} />, color: 'bg-amber-500', value: getBoxTotal('Caja Total') },
+                  { id: 'Limpieza', label: 'Caja Limpieza', icon: <ArrowDownCircle size={16} />, color: 'bg-teal-600', value: getBoxTotal('Limpieza') },
+                ].map(box => (
+                  <button 
+                    key={box.id}
+                    onClick={() => setActiveBox(activeBox === box.id ? null : box.id)}
+                    className="group relative flex flex-col items-center justify-between p-5 bg-white rounded-3xl shadow-lg border border-gray-100 hover:scale-105 transition-all active:scale-95 overflow-hidden"
+                  >
+                    <div className={`${box.color} p-2.5 rounded-2xl text-white mb-4 group-hover:rotate-12 transition-transform`}>
+                      {box.icon}
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[8px] font-black uppercase text-slate-gray tracking-widest block mb-1">{box.label}</span>
+                      <span className="text-xs font-black text-dark-blue">{formatCurrency(box.value)}</span>
+                    </div>
+                    {activeBox === box.id && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary-red"></div>}
+                  </button>
+                ))}
+              </div>
+
+              {/* BOX DRILL-DOWN */}
+              <AnimatePresence>
+                {activeBox && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-dark-blue rounded-3xl p-8 shadow-inner border border-white/10 relative">
+                       <div className="flex justify-between items-center mb-6">
+                          <h3 className="text-white font-black uppercase tracking-widest text-sm flex items-center gap-3">
+                             Detalle Detallado: {activeBox}
+                          </h3>
+                          <button 
+                            onClick={() => handleWithdrawal(activeBox)}
+                            className="bg-primary-red text-white px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+                          >
+                            Realizar Retiro
+                          </button>
+                       </div>
+
+                       <div className="grid lg:grid-cols-2 gap-8">
+                          {/* INCOMES */}
+                          <div className="space-y-4">
+                             <h4 className="text-[10px] text-emerald-400 font-black uppercase tracking-widest border-l-2 border-emerald-400 pl-3">Ingresos por Operación</h4>
+                             <div className="bg-white/5 rounded-2xl overflow-hidden">
+                                <table className="w-full text-left border-collapse text-[10px]">
+                                   <thead className="bg-white/10 text-white/50 uppercase font-black">
+                                      <tr>
+                                        <th className="px-4 py-3">Operación</th>
+                                        <th className="px-4 py-3">Fecha</th>
+                                        <th className="px-4 py-3 text-right">Monto</th>
+                                      </tr>
+                                   </thead>
+                                   <tbody className="text-white/80 divide-y divide-white/5">
+                                      {savedLiquidations.map(l => {
+                                        let amount = 0;
+                                        if (activeBox === 'Agente') amount = l.agentCommissionUSD;
+                                        if (activeBox === 'Oficina') amount = l.officeNetUSD;
+                                        if (activeBox === 'Socio') amount = l.socioUSD;
+                                        if (activeBox === 'Gerente') amount = l.gerenteUSD;
+                                        if (activeBox === 'Caja Total') amount = l.cajaOficinaUSD;
+                                        if (activeBox === 'Limpieza') amount = l.cleaningUSD;
+
+                                        if (amount === 0) return null;
+                                        return (
+                                          <tr key={l.id}>
+                                            <td className="px-4 py-3 font-bold">{l.opNumber}</td>
+                                            <td className="px-4 py-3 opacity-60">{new Date(l.date).toLocaleDateString()}</td>
+                                            <td className="px-4 py-3 text-right font-black text-emerald-400">+{formatCurrency(amount)}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                   </tbody>
+                                </table>
+                             </div>
+                          </div>
+
+                          {/* WITHDRAWALS */}
+                          <div className="space-y-4">
+                             <h4 className="text-[10px] text-primary-red font-black uppercase tracking-widest border-l-2 border-primary-red pl-3">Retiros Realizados</h4>
+                             <div className="bg-white/5 rounded-2xl overflow-hidden">
+                                <table className="w-full text-left border-collapse text-[10px]">
+                                   <thead className="bg-white/10 text-white/50 uppercase font-black">
+                                      <tr>
+                                        <th className="px-4 py-3">ID Retiro</th>
+                                        <th className="px-4 py-3">Fecha</th>
+                                        <th className="px-4 py-3">Por</th>
+                                        <th className="px-4 py-3 text-right">Monto</th>
+                                      </tr>
+                                   </thead>
+                                   <tbody className="text-white/80 divide-y divide-white/5">
+                                      {withdrawals.filter(w => w.boxId === activeBox).length === 0 ? (
+                                        <tr><td colSpan={4} className="px-4 py-8 text-center opacity-40 font-bold uppercase">No hay retiros registrados</td></tr>
+                                      ) : (
+                                        withdrawals.filter(w => w.boxId === activeBox).map(w => (
+                                          <tr key={w.id}>
+                                            <td className="px-4 py-3 font-mono opacity-60">{w.id.slice(0,8)}</td>
+                                            <td className="px-4 py-3 opacity-60">{new Date(w.date).toLocaleDateString()}</td>
+                                            <td className="px-4 py-3 uppercase font-bold">{w.performedBy}</td>
+                                            <td className="px-4 py-3 text-right font-black text-primary-red">-{formatCurrency(w.amountUSD)}</td>
+                                          </tr>
+                                        ))
+                                      )}
+                                   </tbody>
+                                </table>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
