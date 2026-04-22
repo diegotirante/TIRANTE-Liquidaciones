@@ -555,7 +555,7 @@ const LiquidationEngine = () => {
       head: [['Concepto', 'Valor']],
       body: summaryData,
       theme: 'striped',
-      headStyles: { fillColor: [255, 9, 62] } // Primary Red
+      headStyles: { fillColor: [100, 116, 139] } // Slate-500 equivalent
     });
 
     if (context.activeTab === 'ALQUILER') {
@@ -663,7 +663,7 @@ const LiquidationEngine = () => {
       head: [['Actor / Fondo', 'Distribución', 'Firma de Recibido']],
       body: distributionData,
       theme: 'grid',
-      headStyles: { fillColor: [20, 36, 69] },
+      headStyles: { fillColor: [100, 116, 139] },
       styles: { cellPadding: 5 }
     });
 
@@ -691,30 +691,30 @@ const LiquidationEngine = () => {
 
   return (
     <>
-      <div className="bg-dark-blue rounded-3xl p-6 shadow-xl flex flex-col h-full border border-white/5 box-border">
+      <div className="bg-brand-gray rounded-3xl p-6 shadow-xl flex flex-col h-full border border-gray-200 box-border text-dark-text">
       {/* Header with Title */}
       <div className="mb-6 flex flex-col gap-1.5">
          <div className="flex items-center gap-3">
             <div className="bg-primary-red p-2 rounded-lg">
               <Calculator className="text-white w-5 h-5" />
             </div>
-            <h1 className="text-xl font-bold text-white uppercase tracking-tight">Liquidación de Operación</h1>
+            <h1 className="text-xl font-bold text-dark-text uppercase tracking-tight">Liquidación de Operación</h1>
          </div>
          <p className="text-xs text-slate-gray font-medium uppercase tracking-widest">Protocolo Interno de Gestión</p>
       </div>
 
       {/* Tab Switcher & Folio Indicator */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div className="flex bg-white/5 p-1 rounded-xl">
+        <div className="flex bg-gray-200 p-1 rounded-xl">
           <button 
             onClick={() => setActiveTab('ALQUILER')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'ALQUILER' ? 'bg-primary-red text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'ALQUILER' ? 'bg-primary-red text-white shadow-lg' : 'text-slate-500 hover:text-dark-text'}`}
           >
             Alquileres
           </button>
           <button 
             onClick={() => setActiveTab('VENTA')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'VENTA' ? 'bg-primary-red text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'VENTA' ? 'bg-primary-red text-white shadow-lg' : 'text-slate-500 hover:text-dark-text'}`}
           >
             Ventas
           </button>
@@ -733,20 +733,20 @@ const LiquidationEngine = () => {
         <div className="flex gap-2">
           <button 
             onClick={() => setIsOfficeOnly(!isOfficeOnly)}
-            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${isOfficeOnly ? 'bg-primary-red border-primary-red text-white' : 'border-white/10 text-slate-400 hover:bg-white/5'}`}
+            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${isOfficeOnly ? 'bg-primary-red border-primary-red text-white' : 'border-gray-200 text-slate-500 hover:bg-gray-200'}`}
           >
             Modo Oficina
           </button>
-          <div className="flex bg-white/5 p-1 rounded-xl">
+          <div className="flex bg-gray-200 p-1 rounded-xl">
             <button 
               onClick={() => setIsPesos(false)}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${!isPesos ? 'bg-white/10 text-white' : 'text-slate-500'}`}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${!isPesos ? 'bg-white text-dark-text shadow-sm' : 'text-slate-500'}`}
             >
               USD
             </button>
             <button 
               onClick={() => setIsPesos(true)}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${isPesos ? 'bg-white/10 text-white' : 'text-slate-500'}`}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${isPesos ? 'bg-white text-dark-text shadow-sm' : 'text-slate-500'}`}
             >
               ARS
             </button>
@@ -1014,7 +1014,7 @@ const LiquidationEngine = () => {
         >
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
              <div className="w-1.5 h-6 bg-primary-red rounded-full"></div>
-             <h2 className="text-sm font-bold text-dark-blue uppercase tracking-tight">Ingeniería de la Liquidación</h2>
+             <h2 className="text-sm font-bold text-dark-text uppercase tracking-tight">Ingeniería de la Liquidación</h2>
           </div>
           
           <div className="space-y-6">
@@ -1376,7 +1376,7 @@ const LiquidationEngine = () => {
       <div className="grid grid-cols-2 gap-3 mt-6">
         <button 
           onClick={handleSaveLiquidation}
-          className="flex-1 bg-dark-blue text-white py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-all border border-white/10 flex items-center justify-center gap-2"
+          className="flex-1 bg-gray-200 text-dark-text py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-gray-300 transition-all border border-gray-300 flex items-center justify-center gap-2"
         >
           <Save size={14} />
           Guardar Liquidación
@@ -1424,14 +1424,14 @@ const LiquidationEngine = () => {
 
     {/* DASHBOARD TRANSITION ARROW */}
     <div className="mt-12 flex items-center gap-4 w-full">
-        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-dark-blue to-primary-red opacity-30"></div>
+        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-brand-gray to-primary-red opacity-30"></div>
         <button 
           onClick={() => setShowDashboard(!showDashboard)}
-          className="bg-dark-blue p-3 rounded-full border border-white/10 shadow-2xl hover:scale-110 transition-transform active:scale-95 flex items-center justify-center text-white"
+          className="bg-brand-gray p-3 rounded-full border border-gray-200 shadow-2xl hover:scale-110 transition-transform active:scale-95 flex items-center justify-center text-dark-text"
         >
           {showDashboard ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
-        <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-dark-blue to-primary-red opacity-30"></div>
+        <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-brand-gray to-primary-red opacity-30"></div>
       </div>
 
       <AnimatePresence>
@@ -1446,11 +1446,11 @@ const LiquidationEngine = () => {
             <div className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100">
                <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-4">
-                    <div className="bg-dark-blue p-2.5 rounded-xl">
-                      <History className="text-white w-6 h-6" />
+                    <div className="bg-brand-gray p-2.5 rounded-xl">
+                      <History className="text-dark-text w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-black text-dark-blue uppercase tracking-tighter">Dashboard de Operaciones</h2>
+                      <h2 className="text-xl font-black text-dark-text uppercase tracking-tighter">Dashboard de Operaciones</h2>
                       <p className="text-[10px] text-slate-gray font-bold uppercase tracking-widest">Histórico de Liquidaciones Guardadas</p>
                     </div>
                   </div>
@@ -1570,7 +1570,7 @@ const LiquidationEngine = () => {
                   </div>
                   <div className="text-center">
                     <span className="text-[10px] font-black uppercase text-slate-gray tracking-[0.3em] block mb-2">Caja Total Oficina</span>
-                    <span className="text-3xl font-black text-dark-blue">{formatCurrency(getBoxTotal('Caja Total'))}</span>
+                    <span className="text-3xl font-black text-dark-text">{formatCurrency(getBoxTotal('Caja Total'))}</span>
                   </div>
                   {activeBox === 'Caja Total' && <div className="absolute bottom-0 left-0 w-full h-2 bg-amber-500"></div>}
                 </button>
@@ -1580,7 +1580,7 @@ const LiquidationEngine = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {[
                   { id: 'Agente', label: 'Agente a Liquidar', icon: <Users size={16} />, color: 'bg-emerald-500', value: getBoxTotal('Agente') },
-                  { id: 'Oficina', label: 'Caja Oficina', icon: <Building2 size={16} />, color: 'bg-dark-blue', value: getBoxTotal('Oficina') },
+                  { id: 'Oficina', label: 'Caja Oficina', icon: <Building2 size={16} />, color: 'bg-slate-500', value: getBoxTotal('Oficina') },
                   { id: 'Socio', label: 'Caja Socio', icon: <Wallet size={16} />, color: 'bg-primary-red', value: getBoxTotal('Socio') },
                   { id: 'Gerente', label: 'Caja Gerente', icon: <Target size={16} />, color: 'bg-indigo-600', value: getBoxTotal('Gerente') },
                   { id: 'Limpieza', label: 'Caja Limpieza', icon: <ArrowDownCircle size={16} />, color: 'bg-teal-600', value: getBoxTotal('Limpieza') },
@@ -1595,7 +1595,7 @@ const LiquidationEngine = () => {
                     </div>
                     <div className="text-center">
                       <span className="text-[8px] font-black uppercase text-slate-gray tracking-widest block mb-1">{box.label}</span>
-                      <span className="text-xs font-black text-dark-blue">{formatCurrency(box.value)}</span>
+                      <span className="text-xs font-black text-dark-text">{formatCurrency(box.value)}</span>
                     </div>
                     {activeBox === box.id && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary-red"></div>}
                   </button>
@@ -1611,9 +1611,9 @@ const LiquidationEngine = () => {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-dark-blue rounded-3xl p-8 shadow-inner border border-white/10 relative">
+                    <div className="bg-brand-gray rounded-3xl p-8 shadow-inner border border-gray-200 relative">
                        <div className="flex justify-between items-center mb-6">
-                          <h3 className="text-white font-black uppercase tracking-widest text-sm flex items-center gap-3">
+                          <h3 className="text-dark-text font-black uppercase tracking-widest text-sm flex items-center gap-3">
                              DETALLE Caja {activeBox === 'Agente' ? 'Agente a Liquidar' : activeBox}
                           </h3>
                           <button 
@@ -1763,14 +1763,14 @@ export default function App() {
       {/* Branding Overlay */}
       <div className="mb-10 flex flex-col items-center w-full max-w-5xl">
          <div className="flex flex-col md:flex-row items-center justify-center gap-6 px-4">
-          <div className="bg-dark-blue px-8 py-3 rounded-sm shadow-2xl relative">
-            <div className="text-white font-extrabold text-4xl md:text-5xl tracking-[-0.04em] flex items-start">
+          <div className="bg-brand-gray px-8 py-3 rounded-sm shadow-2xl relative">
+            <div className="text-dark-text font-extrabold text-4xl md:text-5xl tracking-[-0.04em] flex items-start">
               TIRANTE<span className="text-lg md:text-xl ml-0.5 mt-1">®</span>
             </div>
             <div className="absolute -bottom-px left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary-red to-transparent opacity-50"></div>
           </div>
           <div className="flex flex-col items-center md:items-start md:border-l-2 md:border-primary-red md:pl-6 md:py-1">
-            <span className="text-dark-blue font-bold text-3xl md:text-4xl tracking-[0.05em] uppercase leading-none">Bienes Raices</span>
+            <span className="text-dark-text font-bold text-3xl md:text-4xl tracking-[0.05em] uppercase leading-none">Bienes Raices</span>
             <div className="text-[10px] text-slate-gray font-bold uppercase tracking-[0.4em] mt-3">Pinamar • Costa Esmeralda</div>
           </div>
         </div>
