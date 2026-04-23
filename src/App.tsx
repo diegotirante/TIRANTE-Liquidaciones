@@ -711,297 +711,356 @@ const LiquidationEngine = () => {
 
   return (
     <>
-      <div className="bg-brand-gray rounded-3xl p-6 shadow-xl flex flex-col h-full border border-gray-200 box-border text-navy-blue">
+      <div className="modern-card p-10 flex flex-col h-full box-border text-navy-blue">
       {/* Header with Title */}
-      <div className="mb-6 flex flex-col gap-1.5">
-         <div className="flex items-center gap-3">
-            <div className="bg-primary-red p-2 rounded-lg shadow-sm">
-              <Calculator className="text-white w-5 h-5" />
+      <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+         <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <div className="bg-electric-blue/10 p-3 rounded-2xl">
+                <Calculator className="text-electric-blue w-6 h-6" />
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black text-navy-blue tracking-tight">Liquidación de Operación</h1>
             </div>
-            <h1 className="text-xl font-bold text-navy-blue uppercase tracking-tight">Liquidación de Operación</h1>
+            <p className="text-sm text-slate-gray font-medium">Protocolo Interno de Gestión de Comisiones</p>
          </div>
-         <p className="text-xs text-graphite font-medium uppercase tracking-widest">Protocolo Interno de Gestión</p>
+
+         <div className="flex gap-2 bg-slate-100 p-1.5 rounded-[20px] self-start md:self-center">
+            <button 
+              onClick={() => setActiveTab('ALQUILER')}
+              className={`modern-pill-tab text-sm ${activeTab === 'ALQUILER' ? 'bg-white text-electric-blue shadow-md' : 'text-slate-500 hover:text-navy-blue'}`}
+            >
+              Alquileres
+            </button>
+            <button 
+              onClick={() => setActiveTab('VENTA')}
+              className={`modern-pill-tab text-sm ${activeTab === 'VENTA' ? 'bg-white text-electric-blue shadow-md' : 'text-slate-500 hover:text-navy-blue'}`}
+            >
+              Ventas
+            </button>
+         </div>
       </div>
 
-      {/* Tab Switcher & Folio Indicator */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div className="flex bg-gray-200 p-1 rounded-xl">
-          <button 
-            onClick={() => setActiveTab('ALQUILER')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'ALQUILER' ? 'bg-electric-blue text-white shadow-lg' : 'text-slate-500 hover:text-navy-blue'}`}
-          >
-            Alquileres
-          </button>
-          <button 
-            onClick={() => setActiveTab('VENTA')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'VENTA' ? 'bg-electric-blue text-white shadow-lg' : 'text-slate-500 hover:text-navy-blue'}`}
-          >
-            Ventas
-          </button>
+      {/* Sub Header / Filters */}
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4 pt-6 border-t border-slate-100">
+        <div className="flex-1 min-w-[240px]">
+           <label className="micro-label">Código Propiedad</label>
+           <div className="relative">
+             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+             <input 
+              type="text" 
+              className="modern-input pl-12 py-3.5 font-bold tracking-widest text-electric-blue" 
+              value={propertyCode} 
+              onChange={(e) => setPropertyCode(e.target.value)} 
+             />
+           </div>
         </div>
 
-        <div className="flex-1 min-w-[200px]">
-           <label className="text-[10px] text-slate-gray font-black uppercase tracking-widest pl-1 mb-1 block">Código Propiedad</label>
-           <input 
-            type="text" 
-            className="sleek-input py-1.5 font-bold tracking-widest" 
-            value={propertyCode} 
-            onChange={(e) => setPropertyCode(e.target.value)} 
-           />
-        </div>
-
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setIsOfficeOnly(!isOfficeOnly)}
-            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${isOfficeOnly ? 'bg-primary-red border-primary-red text-white' : 'border-gray-200 text-slate-500 hover:bg-gray-200'}`}
-          >
-            Modo Oficina
-          </button>
-          <div className="flex bg-gray-200 p-1 rounded-xl">
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col">
+            <label className="micro-label">Gestión</label>
             <button 
-              onClick={() => setIsPesos(false)}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${!isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
+              onClick={() => setIsOfficeOnly(!isOfficeOnly)}
+              className={`px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest border transition-all ${isOfficeOnly ? 'bg-navy-blue border-navy-blue text-white shadow-lg shadow-navy-blue/20' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
             >
-              USD
+              {isOfficeOnly ? 'Modo Oficina' : 'Modo Agente'}
             </button>
-            <button 
-              onClick={() => setIsPesos(true)}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
-            >
-              ARS
-            </button>
+          </div>
+          
+          <div className="flex flex-col">
+            <label className="micro-label">Cambio</label>
+            <div className="flex bg-slate-100 p-1 rounded-2xl">
+              <button 
+                onClick={() => setIsPesos(false)}
+                className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${!isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
+              >
+                USD
+              </button>
+              <button 
+                onClick={() => setIsPesos(true)}
+                className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
+              >
+                ARS
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Dynamic Inputs */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="col-span-2 md:col-span-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 group">
+        <div className="flex flex-col">
           <label className="micro-label">
-            {activeTab === 'ALQUILER' ? 'Precio de Publicación (Todo Incluido)' : 'Monto Real de Venta'} ({isPesos ? 'ARS' : 'USD'})
+            {activeTab === 'ALQUILER' ? 'Precio Publicación' : 'Monto Venta'} ({isPesos ? 'ARS' : 'USD'})
           </label>
-          <input 
-            type="number"
-            className="sleek-input py-2"
-            value={opAmount}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setOpAmount(val);
-              if (activeTab === 'ALQUILER') {
-                setCleaningGastos(Number((val * 0.022).toFixed(2)));
-              }
-            }}
-          />
-          {activeTab === 'ALQUILER' && (
-            <p className="text-[9px] text-slate-gray mt-1 font-bold">Base Alquiler + 10% Comis. + Limpieza</p>
-          )}
-        </div>
-        {activeTab === 'VENTA' && (
-          <div className="col-span-2 md:col-span-1">
-            <label className="micro-label">Valor a Escriturar (Declarar)</label>
+          <div className="relative group">
+            <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
             <input 
               type="number"
-              className="sleek-input py-2"
-              value={valorDeclarar}
-              onChange={(e) => setValorDeclarar(Number(e.target.value))}
+              className="modern-input pl-12"
+              value={opAmount}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setOpAmount(val);
+                if (activeTab === 'ALQUILER') {
+                  setCleaningGastos(Number((val * 0.022).toFixed(2)));
+                }
+              }}
+              placeholder="0.00"
             />
           </div>
+          {activeTab === 'ALQUILER' && (
+            <p className="text-[10px] text-electric-blue/70 mt-2 ml-1 font-semibold flex items-center gap-1">
+              <CheckSquare className="w-3 h-3" /> Incluye Base + 10% + Limpieza
+            </p>
+          )}
+        </div>
+
+        {activeTab === 'VENTA' && (
+          <div className="flex flex-col">
+            <label className="micro-label">Valor a Escriturar</label>
+            <div className="relative group">
+              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+              <input 
+                type="number"
+                className="modern-input pl-12"
+                value={valorDeclarar}
+                onChange={(e) => setValorDeclarar(Number(e.target.value))}
+                placeholder="Valor declarar"
+              />
+            </div>
+          </div>
         )}
-        <div className="col-span-2 md:col-span-1">
-          <label className="micro-label">Coti Dólar</label>
-          <input 
-            type="number"
-            className={`sleek-input py-2 ${!isPesos && 'opacity-50 pointer-events-none'}`}
-            value={exchangeRate}
-            onChange={(e) => setExchangeRate(Number(e.target.value))}
-            disabled={!isPesos}
-          />
+
+        <div className="flex flex-col">
+          <label className="micro-label">Tipo de Cambio</label>
+          <div className="relative group">
+            <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+            <input 
+              type="number"
+              className={`modern-input pl-12 ${!isPesos && 'opacity-40 cursor-not-allowed bg-slate-50'}`}
+              value={exchangeRate}
+              onChange={(e) => setExchangeRate(Number(e.target.value))}
+              disabled={!isPesos}
+            />
+          </div>
         </div>
         
         {!isOfficeOnly && (
           <>
-            <div className="col-span-2 md:col-span-1">
+            <div className="flex flex-col">
               <label className="micro-label">Agente Responsable</label>
-              <input type="text" className="sleek-input py-2" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
+              <div className="relative group">
+                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+                <input type="text" className="modern-input pl-12" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
+              </div>
             </div>
-            <div className="col-span-2 md:col-span-1">
-              <label className="micro-label">Captación del Inmueble</label>
-              <select 
-                className="sleek-input text-xs py-2"
-                value={source}
-                onChange={(e) => setSource(e.target.value as CaptationSource)}
-              >
-                <option value="PROPIA">Propia Agente (30%)</option>
-                <option value="OFICINA">Oficina (25%)</option>
-              </select>
+            <div className="flex flex-col">
+              <label className="micro-label">Origen Captación</label>
+              <div className="relative group">
+                <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+                <select 
+                  className="modern-input pl-12 appearance-none"
+                  value={source}
+                  onChange={(e) => setSource(e.target.value as CaptationSource)}
+                >
+                  <option value="PROPIA">Propia Agente (30%)</option>
+                  <option value="OFICINA">Oficina (25%)</option>
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+              </div>
             </div>
           </>
         )}
         
-        <div className="col-span-2 md:col-span-1">
-          <label className="micro-label">ID de Operación</label>
-          <input type="text" className="sleek-input py-2" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
+        <div className="flex flex-col">
+          <label className="micro-label">N° de Folio / OP</label>
+          <div className="relative group">
+            <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+            <input type="text" className="modern-input pl-12 font-mono" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
+          </div>
         </div>
 
         {activeTab === 'ALQUILER' ? (
-          <div className="col-span-2 md:col-span-1">
-            <label className="micro-label">Gastos Limpieza/Fijos</label>
-            <input type="number" className="sleek-input py-2" value={cleaningGastos} onChange={(e) => setCleaningGastos(Number(e.target.value))} />
+          <div className="flex flex-col">
+            <label className="micro-label">Gastos Limpieza</label>
+            <div className="relative group">
+              <RotateCcw className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+              <input type="number" className="modern-input pl-12" value={cleaningGastos} onChange={(e) => setCleaningGastos(Number(e.target.value))} />
+            </div>
           </div>
         ) : (
-          <>
-            <div className="col-span-2 md:col-span-1">
-              <label className="micro-label">Tipo de Gastos (Escritura)</label>
-              <select className="sleek-input text-xs py-2" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
-                <option value="COMPARTIDO">Gastos de Escritura Compartidos</option>
-                <option value="LIBRE">Libre de Gastos (Total p/Comprador)</option>
-              </select>
+          <div className="flex flex-col">
+             <label className="micro-label">Esquema Gastos</label>
+             <div className="relative group">
+                <LayoutDashboard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+                <select className="modern-input pl-12 appearance-none" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
+                  <option value="COMPARTIDO">Gastos Compartidos</option>
+                  <option value="LIBRE">Libre de Gastos</option>
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+             </div>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 group">
+         <div className="flex flex-col">
+            <label className="micro-label">% Comisión Comprador</label>
+            <div className="relative">
+               <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+               <input type="number" className="modern-input pl-12" value={commCompradorPct} onChange={(e) => setCommCompradorPct(Number(e.target.value))} />
             </div>
-            <div className="grid grid-cols-2 gap-3 col-span-2 md:col-span-1">
-               <div>
-                  <label className="micro-label">% Comisión Comprador</label>
-                  <input type="number" className="sleek-input py-2" value={commCompradorPct} onChange={(e) => setCommCompradorPct(Number(e.target.value))} />
-               </div>
-               <div>
-                  <label className="micro-label">% Comisión Vendedor</label>
-                  <input type="number" className="sleek-input py-2" value={commVendedorPct} onChange={(e) => setCommVendedorPct(Number(e.target.value))} />
-               </div>
+         </div>
+         <div className="flex flex-col">
+            <label className="micro-label">% Comisión Vendedor</label>
+            <div className="relative">
+               <TrendingDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+               <input type="number" className="modern-input pl-12" value={commVendedorPct} onChange={(e) => setCommVendedorPct(Number(e.target.value))} />
             </div>
-            
-            <div className="col-span-2 bg-white/5 p-4 rounded-2xl border border-white/5 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-gray uppercase tracking-widest">Colaboración Inmobiliaria</span>
-                <button 
-                  onClick={() => setIsCompartida(!isCompartida)}
-                  className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase transition-all ${isCompartida ? 'bg-primary-red text-white' : 'bg-white/10 text-slate-500 hover:text-white'}`}
-                >
-                  {isCompartida ? 'COMISIÓN COMPARTIDA ACTIVADA' : 'OPERACIÓN PROPIA'}
-                </button>
-              </div>
-              {isCompartida && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                   <div className="md:col-span-1">
-                      <label className="micro-label">Colaborador / Tipo</label>
-                      <select 
-                        className="sleek-input text-xs py-1.5"
-                        value={coAgencyName === 'AGENTE OFICINA' ? 'AGENTE OFICINA' : 'EXTERNO'}
-                        onChange={(e) => {
-                          if (e.target.value === 'AGENTE OFICINA') {
-                            setCoAgencyName('AGENTE OFICINA');
-                          } else {
-                            setCoAgencyName('');
-                          }
-                        }}
-                      >
-                         <option value="EXTERNO">Agencia Externa (Cede 100%)</option>
-                         <option value="AGENTE OFICINA">Agente de la Oficina (Split Interno)</option>
-                      </select>
-                   </div>
-                   {coAgencyName === 'AGENTE OFICINA' && (
-                     <div className="md:col-span-1">
-                        <label className="micro-label text-primary-red">Nombre del 2do Agente</label>
-                        <input type="text" className="sleek-input py-1.5 border-primary-red/30" value={coAgentName} onChange={(e) => setCoAgentName(e.target.value)} placeholder="Ej: Juan Pérez" />
-                     </div>
-                   )}
-                   {coAgencyName !== 'AGENTE OFICINA' && (
-                     <div className="md:col-span-1">
-                        <label className="micro-label">Nombre Inmobiliaria Colega</label>
-                        <input type="text" className="sleek-input py-1.5" value={coAgencyName} onChange={(e) => setCoAgencyName(e.target.value)} placeholder="Ej: Keller Williams" />
-                     </div>
-                   )}
-                   <div className="flex gap-4 col-span-1 md:col-span-3 lg:col-span-2">
-                      <label className="flex items-center gap-2 cursor-pointer bg-white/5 p-2 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
-                        <input type="checkbox" checked={shareBuyer} onChange={(e) => setShareBuyer(e.target.checked)} className="accent-primary-red w-4 h-4" />
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-black text-white uppercase leading-none">Cede Punta Compradora/Inquilino</span>
-                          <span className="text-[8px] text-slate-gray mt-1 leading-tight">(Marca si el colega trae al cliente)</span>
-                        </div>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer bg-white/5 p-2 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
-                        <input type="checkbox" checked={shareSeller} onChange={(e) => setShareSeller(e.target.checked)} className="accent-primary-red w-4 h-4" />
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-black text-white uppercase leading-none">Cede Punta Vendedora/Propietario</span>
-                          <span className="text-[8px] text-slate-gray mt-1 leading-tight">(Marca si el colega trae la propiedad)</span>
-                        </div>
-                      </label>
-                   </div>
+         </div>
+      </div>
+      
+      <div className="mb-8 p-6 bg-slate-50/50 rounded-[24px] border border-slate-100 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-electric-blue" />
+            <span className="text-xs font-bold text-navy-blue uppercase tracking-widest">Colaboración Inmobiliaria</span>
+          </div>
+          <button 
+            onClick={() => setIsCompartida(!isCompartida)}
+            className={`px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm ${isCompartida ? 'bg-primary-red text-white' : 'bg-white text-slate-400 border border-slate-200'}`}
+          >
+            {isCompartida ? 'OPERACIÓN COMPARTIDA' : 'OPERACIÓN PROPIA'}
+          </button>
+        </div>
+
+        {isCompartida && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end animate-in fade-in slide-in-from-top-1 duration-300">
+             <div className="flex flex-col">
+                <label className="micro-label">Esquema Colaborador</label>
+                <div className="relative">
+                  <select 
+                    className="modern-input appearance-none"
+                    value={coAgencyName === 'AGENTE OFICINA' ? 'AGENTE OFICINA' : 'EXTERNO'}
+                    onChange={(e) => setCoAgencyName(e.target.value === 'AGENTE OFICINA' ? 'AGENTE OFICINA' : '')}
+                  >
+                     <option value="EXTERNO">Agencia Externa (Cede 100%)</option>
+                     <option value="AGENTE OFICINA">Agente Interno (Split 50/50)</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                 </div>
-              )}
-            </div>
-          </>
+             </div>
+
+             {coAgencyName === 'AGENTE OFICINA' ? (
+               <div className="flex flex-col">
+                  <label className="micro-label">Segundo Agente</label>
+                  <input type="text" className="modern-input" value={coAgentName} onChange={(e) => setCoAgentName(e.target.value)} placeholder="Nombre del agente" />
+               </div>
+             ) : (
+               <div className="flex flex-col">
+                  <label className="micro-label">Inmobiliaria Colega</label>
+                  <input type="text" className="modern-input" value={coAgencyName} onChange={(e) => setCoAgencyName(e.target.value)} placeholder="Ej: Keller Williams" />
+               </div>
+             )}
+
+             <div className="flex flex-col gap-3">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${shareBuyer ? 'bg-electric-blue border-electric-blue text-white' : 'border-slate-200 bg-white'}`}>
+                    {shareBuyer && <CheckSquare className="w-4 h-4" />}
+                  </div>
+                  <input type="checkbox" checked={shareBuyer} onChange={(e) => setShareBuyer(e.target.checked)} className="hidden" />
+                  <span className="text-[11px] font-bold text-navy-blue uppercase tracking-tight group-hover:text-electric-blue transition-colors">Cede Punta Compradora</span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${shareSeller ? 'bg-electric-blue border-electric-blue text-white' : 'border-slate-200 bg-white'}`}>
+                    {shareSeller && <CheckSquare className="w-4 h-4" />}
+                  </div>
+                  <input type="checkbox" checked={shareSeller} onChange={(e) => setShareSeller(e.target.checked)} className="hidden" />
+                  <span className="text-[11px] font-bold text-navy-blue uppercase tracking-tight group-hover:text-electric-blue transition-colors">Cede Punta Vendedora</span>
+                </label>
+             </div>
+          </div>
         )}
       </div>
 
       {activeTab === 'VENTA' && (
-        <div className="grid grid-cols-2 gap-3 mb-6 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-           <div className="col-span-2 flex items-center justify-between mb-4 border-b border-white/5 pb-2">
-              <span className="text-[10px] font-bold text-slate-gray uppercase tracking-widest">Escritura y Gastos Notariales</span>
-              <button 
-                onClick={() => setIsTracto(!isTracto)}
-                className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase transition-all tracking-tighter ${isTracto ? 'bg-primary-red text-white shadow-lg shadow-red-900/40' : 'bg-white/5 text-slate-500 hover:text-white'}`}
-              >
-                {isTracto ? 'MODO TRACTO ABREVIADO (SUCESIÓN)' : 'MODO ESCRITURA DIRECTA'}
-              </button>
-           </div>
-           
-           <div className="col-span-1">
-              <label className="micro-label">% Sellos (Total a dividir)</label>
-              <input type="number" step="0.1" className="sleek-input py-1.5" value={escrituraPct} onChange={(e) => setEscrituraPct(Number(e.target.value))} />
-           </div>
-           <div className="col-span-1">
-              <label className="micro-label">% Honorarios Escribanía</label>
-              <input type="number" step="0.1" className="sleek-input py-1.5" value={notaryFeePct} onChange={(e) => setNotaryFeePct(Number(e.target.value))} />
-           </div>
-           <div className="col-span-1">
-              <label className="micro-label">% ITI / Ganancias</label>
-              <input type="number" step="0.1" className="sleek-input py-1.5" value={itiPct} onChange={(e) => setItiPct(Number(e.target.value))} />
-           </div>
-           <div className="col-span-1">
-              <label className="micro-label">Estado Parcelario ($)</label>
-              <input type="number" className="sleek-input py-1.5" value={parcelario} onChange={(e) => setParcelario(Number(e.target.value))} />
-           </div>
-           
-           {isTracto && (
-             <div className="col-span-2 bg-primary-red/5 p-3 rounded-xl border border-primary-red/20 mb-2">
-                <label className="micro-label text-primary-red text-[9px] font-black uppercase mb-2 block tracking-widest">Costos de Tracto Abreviado (Extras Vendedor)</label>
-                <div className="grid grid-cols-2 gap-4">
-                   <div>
-                      <label className="micro-label">Tasa Tracto (%)</label>
-                      <input type="number" step="0.1" className="sleek-input py-1 bg-dark-blue/30 border-primary-red/20" value={tasaTractoPct} onChange={(e) => setTasaTractoPct(Number(e.target.value))} />
-                   </div>
-                   <div>
-                      <label className="micro-label">Gastos Sucesión / Honorarios Abogado (Ref: 4%)</label>
-                      <div className="text-xs font-bold text-white bg-dark-blue/30 p-2 rounded-lg border border-primary-red/10">{formatCurrency(results.type === 'VENTA' ? results.sucesionJudicial : 0)}</div>
-                   </div>
-                </div>
-             </div>
-           )}
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-6 border-t border-slate-100">
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 flex items-center justify-between mb-2">
+               <div className="flex items-center gap-2">
+                 <Building2 className="w-5 h-5 text-electric-blue" />
+                 <span className="text-xs font-bold text-navy-blue uppercase tracking-widest">Escritura y Gastos</span>
+               </div>
+               <button 
+                 onClick={() => setIsTracto(!isTracto)}
+                 className={`px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm ${isTracto ? 'bg-primary-red text-white' : 'bg-white text-slate-400 border border-slate-200'}`}
+               >
+                 {isTracto ? 'Abreviado (Sucesión)' : 'Escritura Directa'}
+               </button>
+            </div>
 
-           <div className="col-span-2 flex items-center gap-4 border-t border-white/5 pt-4 mt-2">
-              <div className="flex-1">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" checked={hasDeudas} onChange={(e) => setHasDeudas(e.target.checked)} className="w-4 h-4 accent-primary-red bg-dark-blue border-white/10 rounded" />
-                  <span className="text-[10px] font-bold text-slate-gray group-hover:text-white transition-colors">RETENCIONES POR DEUDAS (ABI/ARBA/EXPENSAS)</span>
-                </label>
+            <div className="flex flex-col">
+               <label className="micro-label">% Sellos (Total)</label>
+               <input type="number" step="0.1" className="modern-input" value={escrituraPct} onChange={(e) => setEscrituraPct(Number(e.target.value))} />
+            </div>
+            <div className="flex flex-col">
+               <label className="micro-label">% Escribanía (Honor.)</label>
+               <input type="number" step="0.1" className="modern-input" value={notaryFeePct} onChange={(e) => setNotaryFeePct(Number(e.target.value))} />
+            </div>
+            <div className="flex flex-col">
+               <label className="micro-label">% ITI / Ganancias</label>
+               <input type="number" step="0.1" className="modern-input" value={itiPct} onChange={(e) => setItiPct(Number(e.target.value))} />
+            </div>
+            <div className="flex flex-col">
+               <label className="micro-label">Estado Parcelario ($)</label>
+               <input type="number" className="modern-input" value={parcelario} onChange={(e) => setParcelario(Number(e.target.value))} />
+            </div>
+            
+            {isTracto && (
+              <div className="col-span-1 md:col-span-2 lg:col-span-4 p-6 bg-red-50/50 rounded-[32px] border border-red-100 flex flex-col gap-4 animate-in zoom-in-95 duration-300">
+                 <div className="flex items-center gap-2">
+                   <Target className="w-5 h-5 text-primary-red" />
+                   <label className="text-[11px] font-black uppercase text-primary-red tracking-wider">Tracto Abreviado (Sucesión)</label>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col">
+                       <label className="micro-label">Tasa Tracto (%)</label>
+                       <input type="number" step="0.1" className="modern-input focus:ring-red-500/10 focus:border-red-500/30" value={tasaTractoPct} onChange={(e) => setTasaTractoPct(Number(e.target.value))} />
+                    </div>
+                    <div className="flex flex-col">
+                       <label className="micro-label">Costo Estimado Sucesión</label>
+                       <div className="bg-white border border-red-100 p-4 rounded-2xl font-bold text-navy-blue shadow-sm">{formatCurrency(results.type === 'VENTA' ? results.sucesionJudicial : 0)}</div>
+                    </div>
+                 </div>
               </div>
+            )}
+
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 flex items-center justify-between p-6 bg-slate-50/50 rounded-[32px] border border-slate-100 group">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${hasDeudas ? 'bg-primary-red border-primary-red text-white' : 'border-slate-200 bg-white'}`}>
+                  {hasDeudas && <CheckSquare className="w-4 h-4" />}
+                </div>
+                <input type="checkbox" checked={hasDeudas} onChange={(e) => setHasDeudas(e.target.checked)} className="hidden" />
+                <span className="text-[11px] font-bold text-slate-gray uppercase tracking-widest leading-none">Descuento de Deudas Pendientes</span>
+              </label>
               {hasDeudas && (
-                <div className="flex-1">
-                  <input type="number" className="sleek-input py-1 text-center bg-primary-red/10 border-primary-red/30 text-white placeholder:text-white/20" value={deudasMonto} onChange={(e) => setDeudasMonto(Number(e.target.value))} placeholder="Monto Deuda" />
+                <div className="w-48 animate-in slide-in-from-right-4 duration-300">
+                  <input type="number" className="modern-input py-3 text-center" value={deudasMonto} onChange={(e) => setDeudasMonto(Number(e.target.value))} placeholder="Monto" />
                 </div>
               )}
-           </div>
+            </div>
 
-           <div className="col-span-2 grid grid-cols-2 gap-4 border-t border-white/5 pt-4 mt-2">
-              <div className="col-span-1">
-                 <label className="micro-label">SEÑA DE RESERVA ($)</label>
-                 <input type="number" className="sleek-input py-1.5" value={reservaMonto} onChange={(e) => setReservaMonto(Number(e.target.value))} placeholder="Monto de Seña" />
-              </div>
-              <div className="col-span-1">
-                 <label className="micro-label">Fecha de Seña</label>
-                 <input type="date" className="sleek-input py-1.5 text-white/70" value={reservaFecha} onChange={(e) => setReservaFecha(e.target.value)} />
-              </div>
-           </div>
-        </div>
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-electric-blue/5 rounded-[32px] border border-electric-blue/10">
+               <div className="flex flex-col">
+                  <label className="micro-label">Seña de Reserva</label>
+                  <input type="number" className="modern-input" value={reservaMonto} onChange={(e) => setReservaMonto(Number(e.target.value))} placeholder="Monto seña" />
+               </div>
+               <div className="flex flex-col">
+                  <label className="micro-label">Fecha de Recepción</label>
+                  <input type="date" className="modern-input" value={reservaFecha} onChange={(e) => setReservaFecha(e.target.value)} />
+               </div>
+            </div>
+         </div>
       )}
 
       {/* Visual Explanation Trigger */}
@@ -1309,140 +1368,156 @@ const LiquidationEngine = () => {
       )}
 
       {/* Main Results Display */}
-      <div className="flex-1 bg-navy-blue rounded-3xl p-6 shadow-2xl space-y-6 relative overflow-hidden">
-        {/* Subtle decorative element */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+      <div className="flex-1 bg-white rounded-[40px] p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] space-y-12 relative overflow-hidden border border-slate-100">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-electric-blue/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-lime-accent/5 rounded-full -ml-24 -mb-24 blur-3xl"></div>
         
-        <div className="space-y-4 relative z-10">
-          <div className="flex justify-between items-center border-b border-white/10 pb-4">
+        <div className="space-y-8 relative z-10 text-center md:text-left">
+          <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 border-b border-slate-50 pb-8">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase text-white/80 font-bold tracking-[0.2em] mb-1">Comisión Total Agencia</span>
-              <span className="text-3xl font-black text-white tracking-tight leading-none">{formatCurrency(results.totalAgency)}</span>
+              <span className="text-[12px] uppercase text-slate-gray font-black tracking-[0.3em] mb-3">Comisión Bruta de la Agencia</span>
+              <div className="flex items-center justify-center md:justify-start gap-4">
+                 <div className="w-3 h-10 bg-primary-red rounded-full"></div>
+                 <span className="text-5xl md:text-6xl font-black text-navy-blue tracking-tighter leading-none">{formatCurrency(results.totalAgency)}</span>
+              </div>
             </div>
             {isOfficeOnly && (
-               <span className="bg-primary-red text-white text-[9px] font-black px-4 py-1.5 rounded-full tracking-widest shadow-lg shadow-primary-red/20 uppercase">Gestión Oficina</span>
+               <span className="bg-navy-blue text-white text-[11px] font-black px-6 py-2.5 rounded-full tracking-[0.2em] shadow-xl shadow-navy-blue/20 uppercase">Gestión 100% Oficina</span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm shadow-inner group transition-all hover:bg-white/15">
-              <span className="text-[9px] uppercase text-white/70 font-black mb-2 block tracking-widest leading-tight">
-                 {results.type === 'ALQUILER' ? 'Propietario Recibe' : 'Valor a Recibir (Vendedor)'}
-              </span>
-              <span className="text-base md:text-lg font-black text-white transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="p-8 bg-slate-50/80 rounded-[32px] border border-white shadow-sm hover:shadow-md transition-shadow group">
+              <div className="flex items-center gap-3 mb-4">
+                <ChevronDown className="w-5 h-5 text-electric-blue" />
+                <span className="text-[11px] uppercase text-slate-gray font-black tracking-widest leading-none">
+                   {results.type === 'ALQUILER' ? 'Recibe Propietario' : 'Neto p/Vendedor'}
+                </span>
+              </div>
+              <span className="text-3xl font-black text-navy-blue transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)}</span>
             </div>
-            <div className="p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm shadow-inner group transition-all hover:bg-white/15">
-              <span className="text-[9px] uppercase text-white/70 font-black mb-2 block tracking-widest leading-tight">
-                {results.type === 'ALQUILER' ? 'Publicación' : 'A Entregar (Comprador)'}
-              </span>
-              <span className="text-base md:text-lg font-black text-white transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? opAmount : results.totalOperacion)}</span>
+            <div className="p-8 bg-slate-50/80 rounded-[32px] border border-white shadow-sm hover:shadow-md transition-shadow group">
+              <div className="flex items-center gap-3 mb-4">
+                <TrendingUp className="w-5 h-5 text-lime-accent" />
+                <span className="text-[11px] uppercase text-slate-gray font-black tracking-widest leading-none">
+                  {results.type === 'ALQUILER' ? 'Precio de Lista' : 'Total a Entregar (Cliente)'}
+                </span>
+              </div>
+              <span className="text-3xl font-black text-navy-blue transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? opAmount : results.totalOperacion)}</span>
             </div>
           </div>
         </div>
 
         {/* Improved Split Breakdown */}
-        <div className="space-y-4 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="h-[1px] flex-1 bg-white/10"></div>
-            <span className="text-[9px] uppercase text-white/60 font-black tracking-[0.3em]">Distribución Interna</span>
-            <div className="h-[1px] flex-1 bg-white/10"></div>
+        <div className="space-y-8 relative z-10 mt-12 bg-slate-50/50 p-8 rounded-[32px] border border-slate-100">
+          <div className="flex items-center gap-4">
+            <Users className="w-5 h-5 text-slate-400" />
+            <span className="text-[11px] uppercase text-slate-400 font-bold tracking-[0.3em]">Distribución del Honorario</span>
+            <div className="h-[1px] flex-1 bg-slate-200/50"></div>
           </div>
 
           {!isOfficeOnly ? (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center bg-white/5 px-4 py-2.5 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
-                  <span className="text-[8px] text-white/70 uppercase font-black tracking-wider">Agente: {agentName}</span>
-                  <span className="text-xs font-bold text-white">{formatCurrency(results.agent)}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex justify-between items-center bg-white px-6 py-4 rounded-[20px] border border-slate-100 shadow-sm hover:border-electric-blue/20 transition-colors">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-gray uppercase font-bold tracking-wider mb-1">Agente Responsable</span>
+                    <span className="text-sm font-bold text-navy-blue">{agentName}</span>
+                  </div>
+                  <span className="text-xl font-black text-electric-blue">{formatCurrency(results.agent)}</span>
                 </div>
+
                 {coAgencyName === 'AGENTE OFICINA' && (
-                  <div className="flex justify-between items-center bg-white/5 px-4 py-2.5 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
-                    <span className="text-[8px] text-primary-red uppercase font-black tracking-wider">Agente 2: {coAgentName || '---'}</span>
-                    <span className="text-xs font-bold text-white">{formatCurrency(results.agent2 || 0)}</span>
+                  <div className="flex justify-between items-center bg-white px-6 py-4 rounded-[20px] border border-slate-100 shadow-sm hover:border-primary-red/20 transition-colors">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-primary-red uppercase font-bold tracking-wider mb-1">Co-Agente Oficina</span>
+                      <span className="text-sm font-bold text-navy-blue">{coAgentName || '---'}</span>
+                    </div>
+                    <span className="text-xl font-black text-primary-red">{formatCurrency(results.agent2 || 0)}</span>
                   </div>
                 )}
+
                 {isCompartida && coAgencyName !== 'AGENTE OFICINA' && (
-                  <div className="flex justify-between items-center bg-white/15 px-4 py-2.5 rounded-xl border border-primary-red/30 shadow-lg shadow-black/20">
-                    <span className="text-[8px] text-white/90 uppercase font-black tracking-wider">Colega: {coAgencyName || 'AGENCIA'}</span>
-                    <span className="text-xs font-black text-white">{formatCurrency(results.externalShareAmount || 0)}</span>
+                  <div className="flex justify-between items-center bg-white px-6 py-4 rounded-[20px] border border-primary-red/20 shadow-lg shadow-primary-red/5">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-gray uppercase font-bold tracking-wider mb-1">Inmobiliaria Colega (50/50)</span>
+                      <span className="text-sm font-bold text-navy-blue">{coAgencyName || 'AGENCIA'}</span>
+                    </div>
+                    <span className="text-xl font-black text-primary-red">{formatCurrency(results.externalShareAmount || 0)}</span>
                   </div>
                 )}
               </div>
-              <div className="bg-primary-red p-4 rounded-2xl flex flex-col justify-center items-center text-center shadow-2xl shadow-primary-red/30 border border-white/20 hover:scale-[1.02] transition-transform">
-                <span className="text-[9px] text-white/90 font-black uppercase mb-1.5 tracking-[0.2em] leading-tight opacity-70">Neto Oficina</span>
-                <span className="text-xl md:text-2xl font-black text-white">{formatCurrency(results.officeNet)}</span>
+
+              <div className="lg:col-span-5 bg-navy-blue p-8 rounded-[32px] flex flex-col justify-center items-center text-center shadow-2xl shadow-navy-blue/30 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/10 transition-colors"></div>
+                <span className="text-[11px] text-white/50 font-black uppercase mb-2 mt-1 tracking-[0.3em] z-10 leading-none">Neto Oficina (50%)</span>
+                <span className="text-4xl md:text-5xl font-black text-white z-10 tracking-tighter">{formatCurrency(results.officeNet)}</span>
               </div>
             </div>
           ) : (
-            <div className="bg-primary-red p-5 rounded-2xl shadow-2xl shadow-primary-red/20 border border-white/10 text-center">
-               <span className="text-[11px] text-white font-black uppercase tracking-[0.25em]">Liquidación Directa TIRANTE®</span>
+            <div className="bg-navy-blue p-10 rounded-[32px] shadow-2xl shadow-navy-blue/20 border border-white/5 text-center flex flex-col items-center gap-4">
+               <Calculator className="w-8 h-8 text-white opacity-20" />
+               <span className="text-[12px] text-white font-black uppercase tracking-[0.3em]">Liquidación Directa TIRANTE®</span>
+               <span className="text-5xl font-black text-white tracking-tighter mt-2">{formatCurrency(results.officeNet)}</span>
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-3">
-             <div className="bg-white/10 p-3 rounded-2xl text-center border border-white/10 hover:bg-white/15 transition-all">
-                <div className="text-[8px] text-white/60 font-black uppercase mb-1.5 tracking-widest">Socio 25%</div>
-                <div className="text-xs font-bold text-white">{formatCurrency(results.socio)}</div>
+          <div className="grid grid-cols-3 gap-6">
+             <div className="bg-white p-5 rounded-[24px] text-center border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                <div className="text-[9px] text-slate-gray font-black uppercase mb-2 tracking-widest opacity-60">Socio 25%</div>
+                <div className="text-base font-black text-navy-blue">{formatCurrency(results.socio)}</div>
              </div>
-             <div className="bg-white/10 p-3 rounded-2xl text-center border border-white/10 hover:bg-white/15 transition-all">
-                <div className="text-[8px] text-white/60 font-black uppercase mb-1.5 tracking-widest">Gere. 25%</div>
-                <div className="text-xs font-bold text-white">{formatCurrency(results.gerente)}</div>
+             <div className="bg-white p-5 rounded-[24px] text-center border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                <div className="text-[9px] text-slate-gray font-black uppercase mb-2 tracking-widest opacity-60">Gerente 25%</div>
+                <div className="text-base font-black text-navy-blue">{formatCurrency(results.gerente)}</div>
              </div>
-             <div className="bg-white/10 p-3 rounded-2xl text-center border border-white/10 hover:bg-white/15 transition-all">
-                <div className="text-[8px] text-white/60 font-black uppercase mb-1.5 tracking-widest">Caja 50%</div>
-                <div className="text-xs font-bold text-white">{formatCurrency(results.cajaOficina)}</div>
+             <div className="bg-white p-5 rounded-[24px] text-center border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                <div className="text-[9px] text-primary-red font-black uppercase mb-2 tracking-widest">Caja Ofi. 50%</div>
+                <div className="text-base font-black text-primary-red">{formatCurrency(results.cajaOficina)}</div>
              </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mt-6">
-        <button 
-          onClick={handleSaveLiquidation}
-          className="flex-1 bg-light-gray text-navy-blue py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all border border-gray-300 flex items-center justify-center gap-2"
-        >
-          <Save size={14} />
-          Guardar Liquidación
-        </button>
-        <label className="flex items-center justify-center gap-2 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:bg-white/10 transition-all px-4">
+      <div className="flex flex-col gap-4 mt-8">
+        <label className="flex items-center justify-between p-6 bg-slate-50/50 rounded-[32px] border border-slate-100 cursor-pointer group hover:bg-slate-50 transition-all">
+          <div className="flex items-center gap-3">
+            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isFacturado ? 'bg-primary-red border-primary-red text-white' : 'border-slate-200 bg-white'}`}>
+              {isFacturado && <CheckSquare className="w-4 h-4" />}
+            </div>
+            <span className="text-[11px] font-bold text-slate-gray uppercase tracking-widest leading-none">Generar con Factura / I.V.A</span>
+          </div>
           <input 
             type="checkbox" 
             checked={isFacturado} 
             onChange={(e) => setIsFacturado(e.target.checked)}
-            className="w-4 h-4 accent-primary-red"
+            className="hidden"
           />
-          <span className="text-[10px] font-bold text-slate-gray uppercase">Facturar</span>
+          <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${isFacturado ? 'bg-red-100 text-primary-red' : 'bg-slate-100 text-slate-400'}`}>
+            {isFacturado ? 'ACTIVO' : 'NO'}
+          </span>
         </label>
+
+        <button 
+          onClick={handleSaveLiquidation}
+          className="btn-lime w-full flex items-center justify-center gap-3 py-5 text-[13px]"
+        >
+          <Database className="w-5 h-5" />
+          Guardar en Historial
+        </button>
+
+        <button 
+          onClick={() => generatePDF()}
+          className="btn-blue w-full flex items-center justify-center gap-3 py-5 text-[13px]"
+        >
+          <Download className="w-5 h-5" />
+          Generar Documento PDF
+        </button>
       </div>
 
-      <button 
-        onClick={generatePDF}
-        className="w-full bg-primary-red text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs mt-3 hover:opacity-90 transition-all shadow-lg active:scale-95 shadow-primary-red/40 flex items-center justify-center gap-2"
-      >
-        <ClipboardList size={14} />
-        Descargar Liquidación PDF
-      </button>
-
-      <button 
-        onClick={async () => {
-          try {
-            const response = await fetch('/src/App.tsx');
-            const code = await response.text();
-            const blob = new Blob([code], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Tirante_BienesRaices_Codigo.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-          } catch (error) {
-            alert('No se pudo obtener el código fuente. Intente copiarlo desde el editor.');
-          }
-        }}
-        className="w-full bg-white/5 text-slate-gray py-2 rounded-xl font-bold uppercase tracking-widest text-[9px] mt-3 hover:bg-white/10 transition-all flex items-center justify-center gap-2 opacity-60 hover:opacity-100"
-      >
-        <span>Descargar Código Fuente (.txt)</span>
-      </button>
+      <div className="mt-8 flex flex-col items-center">
+        <span className="text-[10px] text-slate-gray font-bold uppercase tracking-[0.2em] opacity-40">Liquidación de Uso Interno - TIRANTE®</span>
+      </div>
     </div>
 
     {/* DASHBOARD TRANSITION ARROW */}
@@ -1465,63 +1540,73 @@ const LiquidationEngine = () => {
             exit={{ opacity: 0, y: 50 }}
             className="mt-8 space-y-8 pb-12"
           >
-            {/* HISTORICAL DASHBOARD */}
-            <div className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100">
-               <div className="flex items-center justify-between mb-8">
+            <div className="bg-white rounded-[40px] p-10 shadow-xl border border-slate-100">
+               <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-50">
                   <div className="flex items-center gap-4">
-                    <div className="bg-brand-gray p-2.5 rounded-xl">
-                      <History className="text-dark-text w-6 h-6" />
+                    <div className="bg-electric-blue/10 p-4 rounded-3xl">
+                      <History className="text-electric-blue w-7 h-7" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-black text-dark-text uppercase tracking-tighter">Dashboard de Operaciones</h2>
-                      <p className="text-[10px] text-slate-gray font-bold uppercase tracking-widest">Histórico de Liquidaciones Guardadas</p>
+                      <h2 className="text-2xl font-black text-navy-blue tracking-tight">Dashboard Histórico</h2>
+                      <p className="text-sm text-slate-400 font-medium tracking-tight">Gestión consolidada de operaciones</p>
                     </div>
                   </div>
                   <button 
                     onClick={resetSystem}
-                    className="flex items-center gap-2 bg-light-gray text-navy-blue px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all border border-gray-200 shadow-sm"
+                    className="flex items-center gap-2 bg-slate-50 text-slate-500 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-red-50 hover:text-primary-red transition-all border border-slate-100"
                   >
-                    <RotateCcw size={12} />
-                    Reiniciar Sistema
+                    <RotateCcw size={14} />
+                    Reiniciar
                   </button>
                </div>
 
-               <div className="grid md:grid-cols-2 gap-8">
+               <div className="grid lg:grid-cols-2 gap-12">
                   {/* ALQUILERES */}
-                  <div className="space-y-4">
-                    <h3 className="text-xs font-black text-dark-blue/40 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                       <TrendingUp size={12} /> Alquileres Realizados
-                    </h3>
-                    <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
-                       <table className="w-full text-left border-collapse">
-                          <thead className="bg-gray-50 uppercase text-[9px] font-black text-slate-gray tracking-widest">
-                             <tr>
-                                <th className="px-4 py-3">ID Operación</th>
-                                <th className="px-4 py-3 text-center">Fecha</th>
-                                <th className="px-4 py-3 text-right">Comisión Total</th>
-                                <th className="px-4 py-3"></th>
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 px-2">
+                      <TrendingUp className="w-5 h-5 text-lime-accent" />
+                      <h3 className="text-[13px] font-black text-navy-blue uppercase tracking-[0.1em]">Alquileres</h3>
+                      <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'ALQUILER').length}</span>
+                    </div>
+                    <div className="overflow-hidden rounded-[32px] border border-slate-100 bg-slate-50/30">
+                       <table className="w-full text-left">
+                          <thead>
+                             <tr className="border-b border-slate-100">
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-gray uppercase tracking-widest">OP / Agente</th>
+                                <th className="px-6 py-4 text-right text-[10px] font-black text-slate-gray uppercase tracking-widest">Comisión</th>
+                                <th className="px-6 py-4"></th>
                              </tr>
                           </thead>
-                          <tbody className="text-[11px] divide-y divide-gray-50">
+                          <tbody className="divide-y divide-slate-100 font-sans">
                              {savedLiquidations.filter(l => l.type === 'ALQUILER').length === 0 ? (
-                               <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">No hay registros</td></tr>
+                               <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-medium italic">Sin registros</td></tr>
                              ) : (
                                savedLiquidations.filter(l => l.type === 'ALQUILER').map(l => (
-                                 <tr key={l.id} className="hover:bg-blue-50/30 transition-colors">
-                                   <td className="px-4 py-3 font-bold text-dark-blue">
-                                     <button 
-                                       onClick={() => generatePDF(l)}
-                                       className="hover:text-primary-red transition-colors underline decoration-dotted"
-                                     >
-                                       {l.opNumber}
-                                     </button>
+                                 <tr key={l.id} className="group hover:bg-white transition-all">
+                                   <td className="px-6 py-5">
+                                     <div className="flex flex-col">
+                                       <span className="text-sm font-bold text-navy-blue group-hover:text-electric-blue transition-colors cursor-pointer" onClick={() => generatePDF(l)}>{l.opNumber}</span>
+                                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{l.agentName} • {new Date(l.date).toLocaleDateString()}</span>
+                                     </div>
                                    </td>
-                                   <td className="px-4 py-3 text-center text-gray-500">{new Date(l.date).toLocaleDateString()}</td>
-                                   <td className="px-4 py-3 text-right font-black text-primary-red">{formatCurrency(l.totalAgencyUSD)}</td>
-                                   <td className="px-4 py-3 text-right">
-                                      <button onClick={() => deleteLiquidation(l.id)} className="text-gray-300 hover:text-primary-red transition-colors">
-                                        <Trash2 size={14} />
-                                      </button>
+                                   <td className="px-6 py-5 text-right font-black text-navy-blue text-sm">
+                                     {formatCurrency(l.totalAgencyUSD)}
+                                   </td>
+                                   <td className="px-6 py-5 text-right">
+                                     <div className="flex items-center justify-end gap-2">
+                                       <button 
+                                         onClick={() => generatePDF(l)}
+                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-electric-blue hover:shadow-md transition-all border border-slate-100"
+                                       >
+                                         <Download size={14} />
+                                       </button>
+                                       <button 
+                                         onClick={() => deleteLiquidation(l.id)}
+                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-primary-red hover:shadow-md transition-all border border-slate-100"
+                                       >
+                                         <Trash2 size={14} />
+                                       </button>
+                                     </div>
                                    </td>
                                  </tr>
                                ))
@@ -1532,40 +1617,51 @@ const LiquidationEngine = () => {
                   </div>
 
                   {/* VENTAS */}
-                  <div className="space-y-4">
-                    <h3 className="text-xs font-black text-dark-blue/40 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                       <TrendingUp size={12} /> Ventas Realizadas
-                    </h3>
-                    <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
-                       <table className="w-full text-left border-collapse">
-                          <thead className="bg-gray-50 uppercase text-[9px] font-black text-slate-gray tracking-widest">
-                             <tr>
-                                <th className="px-4 py-3">ID Operación</th>
-                                <th className="px-4 py-3 text-center">Fecha</th>
-                                <th className="px-4 py-3 text-right">Comisión Total</th>
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 px-2">
+                      <Building2 className="w-5 h-5 text-electric-blue" />
+                      <h3 className="text-[13px] font-black text-navy-blue uppercase tracking-[0.1em]">Ventas</h3>
+                      <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'VENTA').length}</span>
+                    </div>
+                    <div className="overflow-hidden rounded-[32px] border border-slate-100 bg-slate-50/30">
+                       <table className="w-full text-left">
+                          <thead>
+                             <tr className="border-b border-slate-100">
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-gray uppercase tracking-widest">OP / Agente</th>
+                                <th className="px-6 py-4 text-right text-[10px] font-black text-slate-gray uppercase tracking-widest">Comisión</th>
                                 <th className="px-4 py-3"></th>
                              </tr>
                           </thead>
-                          <tbody className="text-[11px] divide-y divide-gray-50">
+                          <tbody className="divide-y divide-slate-100 font-sans">
                              {savedLiquidations.filter(l => l.type === 'VENTA').length === 0 ? (
-                               <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">No hay registros</td></tr>
+                               <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-medium italic">Sin registros</td></tr>
                              ) : (
                                savedLiquidations.filter(l => l.type === 'VENTA').map(l => (
-                                 <tr key={l.id} className="hover:bg-red-50/30 transition-colors">
-                                   <td className="px-4 py-3 font-bold text-dark-blue">
-                                      <button 
-                                       onClick={() => generatePDF(l)}
-                                       className="hover:text-primary-red transition-colors underline decoration-dotted"
-                                     >
-                                       {l.opNumber}
-                                     </button>
+                                 <tr key={l.id} className="group hover:bg-white transition-all">
+                                   <td className="px-6 py-5">
+                                     <div className="flex flex-col">
+                                       <span className="text-sm font-bold text-navy-blue group-hover:text-electric-blue transition-colors cursor-pointer" onClick={() => generatePDF(l)}>{l.opNumber}</span>
+                                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{l.agentName} • {new Date(l.date).toLocaleDateString()}</span>
+                                     </div>
                                    </td>
-                                   <td className="px-4 py-3 text-center text-gray-500">{new Date(l.date).toLocaleDateString()}</td>
-                                   <td className="px-4 py-3 text-right font-black text-primary-red">{formatCurrency(l.totalAgencyUSD)}</td>
-                                   <td className="px-4 py-3 text-right">
-                                      <button onClick={() => deleteLiquidation(l.id)} className="text-gray-300 hover:text-primary-red transition-colors">
-                                        <Trash2 size={14} />
-                                      </button>
+                                   <td className="px-6 py-5 text-right font-black text-navy-blue text-sm">
+                                     {formatCurrency(l.totalAgencyUSD)}
+                                   </td>
+                                   <td className="px-6 py-5 text-right">
+                                     <div className="flex items-center justify-end gap-2">
+                                       <button 
+                                         onClick={() => generatePDF(l)}
+                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-electric-blue hover:shadow-md transition-all border border-slate-100"
+                                       >
+                                         <Download size={14} />
+                                       </button>
+                                       <button 
+                                         onClick={() => deleteLiquidation(l.id)}
+                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-primary-red hover:shadow-md transition-all border border-slate-100"
+                                       >
+                                         <Trash2 size={14} />
+                                       </button>
+                                     </div>
                                    </td>
                                  </tr>
                                ))
@@ -1576,6 +1672,9 @@ const LiquidationEngine = () => {
                   </div>
                </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
             {/* FINANCIAL BOXES SECTION */}
             <div className="space-y-6">
@@ -1634,33 +1733,37 @@ const LiquidationEngine = () => {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-light-gray rounded-3xl p-8 shadow-inner border border-gray-200 relative">
-                       <div className="flex justify-between items-center mb-6">
-                          <h3 className="text-navy-blue font-black uppercase tracking-widest text-sm flex items-center gap-3">
-                             DETALLE Caja {activeBox === 'Agente' ? 'Agente a Liquidar' : activeBox}
-                          </h3>
+                    <div className="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100 relative">
+                       <div className="flex justify-between items-center mb-8">
+                          <div className="flex flex-col">
+                            <h3 className="text-navy-blue font-black uppercase tracking-widest text-sm">
+                               Detalle: {activeBox === 'Agente' ? 'Comisiones a Liquidar' : activeBox}
+                            </h3>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Historial de movimientos y saldos</span>
+                          </div>
                           <button 
                             onClick={() => handleWithdrawal(activeBox)}
-                            className="bg-primary-red text-white px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+                            className="bg-primary-red text-white px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:shadow-lg hover:shadow-red-500/20 transition-all active:scale-95 flex items-center gap-2"
                           >
+                            <RotateCcw size={14} className="rotate-45" />
                             Realizar Retiro
                           </button>
                        </div>
 
-                       <div className="grid lg:grid-cols-2 gap-8">
+                       <div className="grid lg:grid-cols-2 gap-10">
                           {/* INCOMES */}
                           <div className="space-y-4">
-                             <h4 className="text-[10px] text-emerald-400 font-black uppercase tracking-widest border-l-2 border-emerald-400 pl-3">Ingresos por Operación</h4>
-                             <div className="bg-white/5 rounded-2xl overflow-hidden">
-                                <table className="w-full text-left border-collapse text-[10px]">
-                                   <thead className="bg-white/10 text-white/50 uppercase font-black">
+                             <h4 className="text-[11px] text-lime-accent font-black uppercase tracking-widest px-2">Ingresos Consolidados</h4>
+                             <div className="bg-slate-50/50 rounded-[24px] border border-slate-100 overflow-hidden">
+                                <table className="w-full text-left">
+                                   <thead className="bg-white text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
                                       <tr>
-                                        <th className="px-4 py-3">{activeBox === 'Agente' ? 'Agente' : 'Tipo / Prop.'}</th>
-                                        <th className="px-4 py-3">ID / Fecha</th>
-                                        <th className="px-4 py-3 text-right">Monto</th>
+                                        <th className="px-6 py-4">{activeBox === 'Agente' ? 'Agente' : 'Tipo / Prop.'}</th>
+                                        <th className="px-6 py-4">ID / Fecha</th>
+                                        <th className="px-6 py-4 text-right">Monto</th>
                                       </tr>
                                    </thead>
-                                   <tbody className="text-white/80 divide-y divide-white/5">
+                                   <tbody className="divide-y divide-slate-100 font-sans">
                                       {savedLiquidations.flatMap(l => {
                                         const entries: any[] = [];
                                         
@@ -1708,106 +1811,106 @@ const LiquidationEngine = () => {
                                             });
                                           }
                                         }
-
                                         return entries;
                                       }).map(entry => (
-                                        <tr key={entry.id}>
-                                          <td className="px-4 py-3">
-                                            <div className="font-bold uppercase">{entry.label}</div>
-                                            <div className="text-[8px] text-white/40 tracking-wider">{entry.subLabel}</div>
+                                        <tr key={entry.id} className="hover:bg-white transition-colors">
+                                          <td className="px-6 py-4">
+                                            <div className="text-xs font-bold text-navy-blue uppercase">{entry.label}</div>
+                                            <div className="text-[9px] text-slate-400 font-medium tracking-wide">{entry.subLabel}</div>
                                           </td>
-                                          <td className="px-4 py-3">
+                                          <td className="px-6 py-4">
                                             <button 
                                               onClick={() => generatePDF(entry.snapshot)}
-                                              className="font-bold underline decoration-dotted hover:text-primary-red transition-colors"
+                                              className="text-[11px] font-bold text-navy-blue border-b border-dotted border-slate-300 hover:text-electric-blue transition-colors"
                                             >
                                               {entry.op}
                                             </button>
-                                            <div className="text-[8px] opacity-40">{new Date(entry.date).toLocaleDateString()}</div>
+                                            <div className="text-[9px] text-slate-400 font-medium">{new Date(entry.date).toLocaleDateString()}</div>
                                           </td>
-                                          <td className="px-4 py-3 text-right font-black text-emerald-400">+{formatCurrency(entry.amount)}</td>
+                                          <td className="px-6 py-4 text-right font-black text-lime-accent text-sm">+{formatCurrency(entry.amount)}</td>
                                         </tr>
-                                      ))}
-                                   </tbody>
-                                </table>
-                             </div>
-                          </div>
-
-                          {/* WITHDRAWALS */}
-                          <div className="space-y-4">
-                             <h4 className="text-[10px] text-primary-red font-black uppercase tracking-widest border-l-2 border-primary-red pl-3">Retiros Realizados</h4>
-                             <div className="bg-white/5 rounded-2xl overflow-hidden">
-                                <table className="w-full text-left border-collapse text-[10px]">
-                                   <thead className="bg-white/10 text-white/50 uppercase font-black">
-                                      <tr>
-                                        <th className="px-4 py-3">ID / Fecha</th>
-                                        <th className="px-4 py-3">Entregado a / Responsable</th>
-                                        <th className="px-4 py-3 text-right">Monto</th>
+                                       ))}
+                                    </tbody>
+                                 </table>
+                              </div>
+                           </div>
+ 
+                           {/* WITHDRAWALS */}
+                           <div className="space-y-4">
+                              <h4 className="text-[11px] text-primary-red font-black uppercase tracking-widest px-2">Egresos y Retiros</h4>
+                              <div className="bg-slate-50/50 rounded-[24px] border border-slate-100 overflow-hidden">
+                                 <table className="w-full text-left">
+                                    <thead className="bg-white text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                       <tr>
+                                         <th className="px-6 py-4">ID / Fecha</th>
+                                         <th className="px-6 py-4">Receptor / Resp.</th>
+                                         <th className="px-6 py-4 text-right">Monto</th>
                                       </tr>
                                    </thead>
-                                   <tbody className="text-white/80 divide-y divide-white/5">
-                                      {withdrawals.filter(w => w.boxId === activeBox).length === 0 ? (
-                                        <tr><td colSpan={3} className="px-4 py-8 text-center opacity-40 font-bold uppercase">No hay retiros registrados</td></tr>
-                                      ) : (
-                                        withdrawals.filter(w => w.boxId === activeBox).map(w => (
-                                          <tr key={w.id}>
-                                            <td className="px-4 py-3">
-                                               <div className="font-bold">{w.id}</div>
-                                               <div className="text-[8px] opacity-40">{new Date(w.date).toLocaleDateString()}</div>
-                                             </td>
-                                            <td className="px-4 py-3">
-                                               <div className="font-bold text-primary-red uppercase leading-tight">A: {w.recipient}</div>
-                                               <div className="text-[8px] opacity-40 uppercase tracking-widest leading-tight">Por: {w.performedBy}</div>
-                                             </td>
-                                            <td className="px-4 py-3 text-right font-black text-primary-red">-{formatCurrency(w.amountUSD)}</td>
-                                          </tr>
-                                        ))
-                                      )}
-                                   </tbody>
-                                </table>
-                             </div>
-                          </div>
-                       </div>
-                    </div>
+                                   <tbody className="divide-y divide-slate-100 font-sans">
+                                       {withdrawals.filter(w => w.boxId === activeBox).length === 0 ? (
+                                         <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-medium italic">Sin retiros</td></tr>
+                                       ) : (
+                                         withdrawals.filter(w => w.boxId === activeBox).map(w => (
+                                           <tr key={w.id} className="hover:bg-white transition-colors">
+                                             <td className="px-6 py-4">
+                                                <div className="text-xs font-bold text-navy-blue">{w.id}</div>
+                                                <div className="text-[9px] text-slate-400 font-medium">{new Date(w.date).toLocaleDateString()}</div>
+                                              </td>
+                                             <td className="px-6 py-4">
+                                                <div className="text-[11px] font-bold text-primary-red uppercase leading-none mb-1">A: {w.recipient}</div>
+                                                <div className="text-[9px] text-slate-400 font-medium uppercase tracking-tight">Por: {w.performedBy}</div>
+                                              </td>
+                                             <td className="px-6 py-4 text-right font-black text-primary-red text-sm">-{formatCurrency(w.amountUSD)}</td>
+                                           </tr>
+                                         ))
+                                       )}
+                                    </tbody>
+                                 </table>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
+      </>
+    );
 };
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-bg-gray flex flex-col items-center justify-center p-4 md:p-8">
+    <div className="min-h-screen bg-[#F8FBFF] flex flex-col items-center justify-start p-4 md:p-12 relative overflow-hidden">
+      {/* Decorative background blur blobs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-electric-blue/5 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-lime-accent/10 rounded-full blur-[120px] pointer-events-none"></div>
+
       {/* Branding Overlay */}
-      <div className="mb-14 flex flex-col items-center w-full max-w-5xl">
+      <div className="mb-14 flex flex-col items-center w-full max-w-6xl z-10">
          <div className="flex flex-col md:flex-row items-center justify-center gap-5 md:gap-7 px-4">
             {/* Section 1: TIRANTE® */}
             <div className="flex items-start">
-              <span className="text-black font-bold text-[38px] md:text-[59px] leading-none tracking-tight">TIRANTE</span>
-              <span className="text-black font-normal text-[16px] md:text-[23px] ml-1 mt-1 md:mt-2">®</span>
+              <span className="text-navy-blue font-black text-[38px] md:text-[59px] leading-none tracking-tight">TIRANTE</span>
+              <span className="text-navy-blue font-medium text-[16px] md:text-[23px] ml-1 mt-1 md:mt-2">®</span>
             </div>
 
             {/* Red Separator Bar */}
-            <div className="w-[3px] md:w-[4px] h-[34px] md:h-[54px] bg-primary-red mx-1 hidden md:block"></div>
+            <div className="w-[3px] md:w-[4px] h-[34px] md:h-[54px] bg-primary-red mx-1 hidden md:block rounded-full"></div>
             
             {/* Section 2: Bienes Raices. */}
             <div className="flex items-center h-full">
-              <span className="text-black font-medium text-[18px] md:text-[28px] leading-none tracking-normal">Bienes Raices.</span>
+              <span className="text-navy-blue font-medium text-[18px] md:text-[28px] leading-none tracking-tight opacity-70">Bienes Raices.</span>
             </div>
          </div>
          
          {/* Office Description */}
-         <div className="mt-8 flex flex-col items-center text-[10px] text-navy-blue font-black uppercase tracking-[0.3em] opacity-80">
-           Oficina Pinamar: Martillero Diego A. Tirante
+         <div className="mt-8 flex flex-col items-center text-[11px] text-slate-gray font-bold uppercase tracking-[0.4em] opacity-60">
+           Pinamar • Costa Esmeralda • Cariló
          </div>
       </div>
 
-      <main className="w-full max-w-5xl h-auto">
+      <main className="w-full max-w-6xl h-auto z-10">
         <LiquidationEngine />
       </main>
 
