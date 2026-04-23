@@ -487,17 +487,22 @@ const LiquidationEngine = () => {
     const date = context.date || new Date().toLocaleDateString();
     
     const addHeader = (p_doc: jsPDF) => {
-      p_doc.setFillColor(20, 36, 69); // Dark Blue
+      p_doc.setFillColor(212, 32, 35); // Rojo Carmesí #D42023
       p_doc.rect(0, 0, 210, 40, 'F');
       
       p_doc.setTextColor(255, 255, 255);
-      p_doc.setFontSize(22);
+      p_doc.setFontSize(26);
       p_doc.setFont('helvetica', 'bold');
-      p_doc.text('TIRANTE®', 15, 20);
-      p_doc.setFontSize(16);
-      p_doc.text('BIENES RAICES', 15, 30);
+      p_doc.text('TIRANTE®', 15, 22);
       
-      p_doc.setFontSize(10);
+      p_doc.setFontSize(14);
+      p_doc.setFont('helvetica', 'normal');
+      p_doc.text('|  Bienes Raices.', 75, 22);
+      
+      p_doc.setFontSize(8.5);
+      p_doc.text('Oficina Pinamar: Martillero Diego A. Tirante', 15, 32);
+      
+      p_doc.setFontSize(9);
       p_doc.text(`LIQUIDACIÓN: ${context.opNumber}`, 150, 15);
       p_doc.text(`PROPIEDAD: ${context.propertyCode}`, 150, 22);
       p_doc.text(`FECHA: ${date}`, 150, 29);
@@ -555,7 +560,7 @@ const LiquidationEngine = () => {
       head: [['Concepto', 'Valor']],
       body: summaryData,
       theme: 'striped',
-      headStyles: { fillColor: [100, 116, 139] } // Slate-500 equivalent
+      headStyles: { fillColor: [10, 31, 68] } // Navy Blue #0A1F44
     });
 
     if (context.activeTab === 'ALQUILER') {
@@ -663,7 +668,7 @@ const LiquidationEngine = () => {
       head: [['Actor / Fondo', 'Distribución', 'Firma de Recibido']],
       body: distributionData,
       theme: 'grid',
-      headStyles: { fillColor: [100, 116, 139] },
+      headStyles: { fillColor: [10, 31, 68] },
       styles: { cellPadding: 5 }
     });
 
@@ -691,16 +696,16 @@ const LiquidationEngine = () => {
 
   return (
     <>
-      <div className="bg-brand-gray rounded-3xl p-6 shadow-xl flex flex-col h-full border border-gray-200 box-border text-dark-text">
+      <div className="bg-brand-gray rounded-3xl p-6 shadow-xl flex flex-col h-full border border-gray-200 box-border text-navy-blue">
       {/* Header with Title */}
       <div className="mb-6 flex flex-col gap-1.5">
          <div className="flex items-center gap-3">
-            <div className="bg-primary-red p-2 rounded-lg">
+            <div className="bg-primary-red p-2 rounded-lg shadow-sm">
               <Calculator className="text-white w-5 h-5" />
             </div>
-            <h1 className="text-xl font-bold text-dark-text uppercase tracking-tight">Liquidación de Operación</h1>
+            <h1 className="text-xl font-bold text-navy-blue uppercase tracking-tight">Liquidación de Operación</h1>
          </div>
-         <p className="text-xs text-slate-gray font-medium uppercase tracking-widest">Protocolo Interno de Gestión</p>
+         <p className="text-xs text-graphite font-medium uppercase tracking-widest">Protocolo Interno de Gestión</p>
       </div>
 
       {/* Tab Switcher & Folio Indicator */}
@@ -708,13 +713,13 @@ const LiquidationEngine = () => {
         <div className="flex bg-gray-200 p-1 rounded-xl">
           <button 
             onClick={() => setActiveTab('ALQUILER')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'ALQUILER' ? 'bg-primary-red text-white shadow-lg' : 'text-slate-500 hover:text-dark-text'}`}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'ALQUILER' ? 'bg-electric-blue text-white shadow-lg' : 'text-slate-500 hover:text-navy-blue'}`}
           >
             Alquileres
           </button>
           <button 
             onClick={() => setActiveTab('VENTA')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'VENTA' ? 'bg-primary-red text-white shadow-lg' : 'text-slate-500 hover:text-dark-text'}`}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'VENTA' ? 'bg-electric-blue text-white shadow-lg' : 'text-slate-500 hover:text-navy-blue'}`}
           >
             Ventas
           </button>
@@ -740,13 +745,13 @@ const LiquidationEngine = () => {
           <div className="flex bg-gray-200 p-1 rounded-xl">
             <button 
               onClick={() => setIsPesos(false)}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${!isPesos ? 'bg-white text-dark-text shadow-sm' : 'text-slate-500'}`}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${!isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
             >
               USD
             </button>
             <button 
               onClick={() => setIsPesos(true)}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${isPesos ? 'bg-white text-dark-text shadow-sm' : 'text-slate-500'}`}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
             >
               ARS
             </button>
@@ -1289,84 +1294,87 @@ const LiquidationEngine = () => {
       )}
 
       {/* Main Results Display */}
-      <div className="flex-1 bg-white/[0.03] rounded-2xl p-4 border border-white/5 space-y-4">
-        <div className="space-y-3">
-          <div className="flex justify-between items-center border-b border-white/10 pb-3">
+      <div className="flex-1 bg-navy-blue rounded-3xl p-6 shadow-2xl space-y-6 relative overflow-hidden">
+        {/* Subtle decorative element */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+        
+        <div className="space-y-4 relative z-10">
+          <div className="flex justify-between items-center border-b border-white/10 pb-4">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase text-slate-gray font-bold tracking-widest mb-1">Comisión Total Agencia</span>
-              <span className="text-2xl font-bold text-white tracking-tight">{formatCurrency(results.totalAgency)}</span>
+              <span className="text-[10px] uppercase text-white/80 font-bold tracking-[0.2em] mb-1">Comisión Total Agencia</span>
+              <span className="text-3xl font-black text-white tracking-tight leading-none">{formatCurrency(results.totalAgency)}</span>
             </div>
             {isOfficeOnly && (
-               <span className="bg-primary-red/20 text-primary-red border border-primary-red/30 text-[10px] font-bold px-3 py-1 rounded-full">GESTIÓN OFICINA</span>
+               <span className="bg-primary-red text-white text-[9px] font-black px-4 py-1.5 rounded-full tracking-widest shadow-lg shadow-primary-red/20 uppercase">Gestión Oficina</span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-              <span className="text-[10px] uppercase text-slate-gray font-bold mb-2 block">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm shadow-inner group transition-all hover:bg-white/15">
+              <span className="text-[9px] uppercase text-white/70 font-black mb-2 block tracking-widest leading-tight">
                  {results.type === 'ALQUILER' ? 'Propietario Recibe' : 'Valor a Recibir (Vendedor)'}
               </span>
-              <span className="text-sm font-bold text-white">{formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)}</span>
+              <span className="text-base md:text-lg font-black text-white transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)}</span>
             </div>
-            <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-              <span className="text-[10px] uppercase text-slate-gray font-bold mb-2 block">
-                {results.type === 'ALQUILER' ? 'Precio de la Publicación' : 'Valor a Entregar (Comprador)'}
+            <div className="p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm shadow-inner group transition-all hover:bg-white/15">
+              <span className="text-[9px] uppercase text-white/70 font-black mb-2 block tracking-widest leading-tight">
+                {results.type === 'ALQUILER' ? 'Publicación' : 'A Entregar (Comprador)'}
               </span>
-              <span className="text-sm font-bold text-white">{formatCurrency(results.type === 'ALQUILER' ? opAmount : results.totalOperacion)}</span>
+              <span className="text-base md:text-lg font-black text-white transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? opAmount : results.totalOperacion)}</span>
             </div>
           </div>
         </div>
 
         {/* Improved Split Breakdown */}
-        <div className="space-y-4">
+        <div className="space-y-4 relative z-10">
           <div className="flex items-center gap-3">
             <div className="h-[1px] flex-1 bg-white/10"></div>
-            <span className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em]">Distribución Interna</span>
+            <span className="text-[9px] uppercase text-white/60 font-black tracking-[0.3em]">Distribución Interna</span>
             <div className="h-[1px] flex-1 bg-white/10"></div>
           </div>
 
           {!isOfficeOnly ? (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <div className="flex justify-between items-center bg-white/5 px-4 py-2 rounded-lg border border-white/5">
-                  <span className="text-[10px] text-slate-gray uppercase font-bold">Agente: {agentName}</span>
+                <div className="flex justify-between items-center bg-white/5 px-4 py-2.5 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
+                  <span className="text-[8px] text-white/70 uppercase font-black tracking-wider">Agente: {agentName}</span>
                   <span className="text-xs font-bold text-white">{formatCurrency(results.agent)}</span>
                 </div>
                 {coAgencyName === 'AGENTE OFICINA' && (
-                  <div className="flex justify-between items-center bg-white/5 px-4 py-2 rounded-lg border border-white/5">
-                    <span className="text-[10px] text-primary-red uppercase font-bold">Agente 2: {coAgentName || '---'}</span>
+                  <div className="flex justify-between items-center bg-white/5 px-4 py-2.5 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
+                    <span className="text-[8px] text-primary-red uppercase font-black tracking-wider">Agente 2: {coAgentName || '---'}</span>
                     <span className="text-xs font-bold text-white">{formatCurrency(results.agent2 || 0)}</span>
                   </div>
                 )}
                 {isCompartida && coAgencyName !== 'AGENTE OFICINA' && (
-                  <div className="flex justify-between items-center bg-white/10 px-4 py-2 rounded-lg border border-primary-red/30">
-                    <span className="text-[10px] text-slate-gray uppercase font-bold">Colega: {coAgencyName || 'OTRA AGENCIA'}</span>
-                    <span className="text-xs font-bold text-primary-red">{formatCurrency(results.externalShareAmount || 0)}</span>
+                  <div className="flex justify-between items-center bg-white/15 px-4 py-2.5 rounded-xl border border-primary-red/30 shadow-lg shadow-black/20">
+                    <span className="text-[8px] text-white/90 uppercase font-black tracking-wider">Colega: {coAgencyName || 'AGENCIA'}</span>
+                    <span className="text-xs font-black text-white">{formatCurrency(results.externalShareAmount || 0)}</span>
                   </div>
                 )}
               </div>
-              <div className="bg-primary-red/10 p-4 rounded-xl border border-primary-red/10 flex flex-col justify-center items-center text-center">
-                <span className="text-[10px] text-primary-red font-bold uppercase mb-2">Neto Oficina</span>
-                <span className="text-xl font-bold text-white">{formatCurrency(results.officeNet)}</span>
+              <div className="bg-primary-red p-4 rounded-2xl flex flex-col justify-center items-center text-center shadow-2xl shadow-primary-red/30 border border-white/20 hover:scale-[1.02] transition-transform">
+                <span className="text-[9px] text-white/90 font-black uppercase mb-1.5 tracking-[0.2em] leading-tight opacity-70">Neto Oficina</span>
+                <span className="text-xl md:text-2xl font-black text-white">{formatCurrency(results.officeNet)}</span>
               </div>
             </div>
           ) : (
-            <div className="bg-primary-red/5 p-4 rounded-xl border border-primary-red/10 text-center">
-               <span className="text-xs text-primary-red font-bold uppercase tracking-widest">Liquidación Directa TIRANTE®</span>
+            <div className="bg-primary-red p-5 rounded-2xl shadow-2xl shadow-primary-red/20 border border-white/10 text-center">
+               <span className="text-[11px] text-white font-black uppercase tracking-[0.25em]">Liquidación Directa TIRANTE®</span>
             </div>
           )}
 
           <div className="grid grid-cols-3 gap-3">
-             <div className="bg-white/5 p-3 rounded-xl text-center border border-white/5">
-                <div className="text-[10px] text-slate-gray font-bold uppercase mb-2">Socio 25%</div>
+             <div className="bg-white/10 p-3 rounded-2xl text-center border border-white/10 hover:bg-white/15 transition-all">
+                <div className="text-[8px] text-white/60 font-black uppercase mb-1.5 tracking-widest">Socio 25%</div>
                 <div className="text-xs font-bold text-white">{formatCurrency(results.socio)}</div>
              </div>
-             <div className="bg-white/5 p-3 rounded-xl text-center border border-white/5">
-                <div className="text-[10px] text-slate-gray font-bold uppercase mb-2">Gere. 25%</div>
+             <div className="bg-white/10 p-3 rounded-2xl text-center border border-white/10 hover:bg-white/15 transition-all">
+                <div className="text-[8px] text-white/60 font-black uppercase mb-1.5 tracking-widest">Gere. 25%</div>
                 <div className="text-xs font-bold text-white">{formatCurrency(results.gerente)}</div>
              </div>
-             <div className="bg-white/5 p-3 rounded-xl text-center border border-white/5">
-                <div className="text-[10px] text-slate-gray font-bold uppercase mb-2">Caja 50%</div>
+             <div className="bg-white/10 p-3 rounded-2xl text-center border border-white/10 hover:bg-white/15 transition-all">
+                <div className="text-[8px] text-white/60 font-black uppercase mb-1.5 tracking-widest">Caja 50%</div>
                 <div className="text-xs font-bold text-white">{formatCurrency(results.cajaOficina)}</div>
              </div>
           </div>
@@ -1376,7 +1384,7 @@ const LiquidationEngine = () => {
       <div className="grid grid-cols-2 gap-3 mt-6">
         <button 
           onClick={handleSaveLiquidation}
-          className="flex-1 bg-gray-200 text-dark-text py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-gray-300 transition-all border border-gray-300 flex items-center justify-center gap-2"
+          className="flex-1 bg-light-gray text-navy-blue py-3 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all border border-gray-300 flex items-center justify-center gap-2"
         >
           <Save size={14} />
           Guardar Liquidación
@@ -1394,7 +1402,7 @@ const LiquidationEngine = () => {
 
       <button 
         onClick={generatePDF}
-        className="w-full bg-primary-red text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs mt-3 hover:bg-red-600 transition-all shadow-lg active:scale-95 shadow-red-900/40 flex items-center justify-center gap-2"
+        className="w-full bg-primary-red text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs mt-3 hover:opacity-90 transition-all shadow-lg active:scale-95 shadow-primary-red/40 flex items-center justify-center gap-2"
       >
         <ClipboardList size={14} />
         Descargar Liquidación PDF
@@ -1456,7 +1464,7 @@ const LiquidationEngine = () => {
                   </div>
                   <button 
                     onClick={resetSystem}
-                    className="flex items-center gap-2 bg-red-50 text-primary-red px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary-red hover:text-white transition-all border border-primary-red/10"
+                    className="flex items-center gap-2 bg-light-gray text-navy-blue px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all border border-gray-200 shadow-sm"
                   >
                     <RotateCcw size={12} />
                     Reiniciar Sistema
@@ -1557,7 +1565,7 @@ const LiquidationEngine = () => {
             {/* FINANCIAL BOXES SECTION */}
             <div className="space-y-6">
               <div className="h-[1px] w-full bg-gray-200"></div>
-              <h2 className="text-center text-[10px] font-black text-slate-gray uppercase tracking-[0.5em] py-4">Centro de Gestión Financiera</h2>
+              <h2 className="text-center text-[10px] font-black text-navy-blue uppercase tracking-[0.5em] py-4">Centro de Gestión Financiera</h2>
               
               {/* PRIMARY BOX: TOTAL OFICINA */}
               <div className="flex justify-center mb-6">
@@ -1569,8 +1577,8 @@ const LiquidationEngine = () => {
                     <LayoutDashboard size={32} />
                   </div>
                   <div className="text-center">
-                    <span className="text-[10px] font-black uppercase text-slate-gray tracking-[0.3em] block mb-2">Caja Total Oficina</span>
-                    <span className="text-3xl font-black text-dark-text">{formatCurrency(getBoxTotal('Caja Total'))}</span>
+                    <span className="text-[10px] font-black uppercase text-graphite tracking-[0.3em] block mb-2">Caja Total Oficina</span>
+                    <span className="text-3xl font-black text-navy-blue">{formatCurrency(getBoxTotal('Caja Total'))}</span>
                   </div>
                   {activeBox === 'Caja Total' && <div className="absolute bottom-0 left-0 w-full h-2 bg-amber-500"></div>}
                 </button>
@@ -1594,8 +1602,8 @@ const LiquidationEngine = () => {
                       {box.icon}
                     </div>
                     <div className="text-center">
-                      <span className="text-[8px] font-black uppercase text-slate-gray tracking-widest block mb-1">{box.label}</span>
-                      <span className="text-xs font-black text-dark-text">{formatCurrency(box.value)}</span>
+                      <span className="text-[8px] font-black uppercase text-graphite tracking-widest block mb-1">{box.label}</span>
+                      <span className="text-xs font-black text-navy-blue">{formatCurrency(box.value)}</span>
                     </div>
                     {activeBox === box.id && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary-red"></div>}
                   </button>
@@ -1611,9 +1619,9 @@ const LiquidationEngine = () => {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-brand-gray rounded-3xl p-8 shadow-inner border border-gray-200 relative">
+                    <div className="bg-light-gray rounded-3xl p-8 shadow-inner border border-gray-200 relative">
                        <div className="flex justify-between items-center mb-6">
-                          <h3 className="text-dark-text font-black uppercase tracking-widest text-sm flex items-center gap-3">
+                          <h3 className="text-navy-blue font-black uppercase tracking-widest text-sm flex items-center gap-3">
                              DETALLE Caja {activeBox === 'Agente' ? 'Agente a Liquidar' : activeBox}
                           </h3>
                           <button 
@@ -1761,18 +1769,29 @@ export default function App() {
   return (
     <div className="min-h-screen bg-bg-gray flex flex-col items-center justify-center p-4 md:p-8">
       {/* Branding Overlay */}
-      <div className="mb-10 flex flex-col items-center w-full max-w-5xl">
-         <div className="flex flex-col md:flex-row items-center justify-center gap-6 px-4">
-          <div className="bg-brand-gray px-8 py-3 rounded-sm shadow-2xl relative">
-            <div className="text-dark-text font-extrabold text-4xl md:text-5xl tracking-[-0.04em] flex items-start">
-              TIRANTE<span className="text-lg md:text-xl ml-0.5 mt-1">®</span>
-            </div>
-            <div className="absolute -bottom-px left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary-red to-transparent opacity-50"></div>
-          </div>
-          <div className="flex flex-col items-center md:items-start md:border-l-2 md:border-primary-red md:pl-6 md:py-1">
-            <span className="text-dark-text font-bold text-3xl md:text-4xl tracking-[0.05em] uppercase leading-none">Bienes Raices</span>
-            <div className="text-[10px] text-slate-gray font-bold uppercase tracking-[0.4em] mt-3">Pinamar • Costa Esmeralda</div>
-          </div>
+      <div className="mb-14 flex flex-col items-center w-full max-w-5xl">
+         <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8 px-4">
+           {/* Geometric Logo Implementation */}
+           <div className="flex items-center gap-4 md:gap-6">
+             {/* TIRANTE® */}
+             <div className="flex items-start">
+               <span className="text-primary-red font-bold text-[38px] md:text-[59px] leading-none tracking-tight">TIRANTE</span>
+               <span className="text-primary-red font-normal text-[8px] md:text-[12px] ml-0.5 mt-1 md:mt-2">®</span>
+             </div>
+             
+             {/* Separator Bar */}
+             <div className="w-[2px] h-[32px] md:h-[50px] bg-primary-red hidden md:block self-center opacity-90"></div>
+             
+             {/* Slogan */}
+             <div className="text-graphite font-medium text-[16px] md:text-[23px] leading-none flex items-center h-full">
+               Bienes Raices.
+             </div>
+           </div>
+        </div>
+        
+        {/* Office Description */}
+        <div className="mt-5 flex flex-col items-center text-[9px] md:text-[10px] text-navy-blue font-bold uppercase tracking-[0.25em] opacity-80 decoration-primary-red/20 underline-offset-4 underline">
+          Oficina Pinamar: Martillero Diego A. Tirante
         </div>
       </div>
 
@@ -1780,11 +1799,11 @@ export default function App() {
         <LiquidationEngine />
       </main>
 
-      <footer className="mt-16 text-[10px] text-slate-gray font-bold uppercase tracking-[0.3em] flex flex-col items-center gap-3 opacity-40">
+      <footer className="mt-16 text-[10px] text-graphite font-bold uppercase tracking-[0.3em] flex flex-col items-center gap-3 opacity-40">
         <div>Diego Ariel Tirante • Broker Inmobiliario</div>
         <div className="flex items-center gap-2">
           <span>© 2024</span>
-          <span className="w-1 h-1 bg-slate-gray rounded-full"></span>
+          <span className="w-1 h-1 bg-graphite rounded-full"></span>
           <span>tirante bienes raices</span>
         </div>
       </footer>
