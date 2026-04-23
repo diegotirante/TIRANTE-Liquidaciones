@@ -487,40 +487,36 @@ const LiquidationEngine = () => {
     const date = context.date || new Date().toLocaleDateString();
     
     const addHeader = (p_doc: jsPDF) => {
-      // Header background White for this specific hybrid logo style
+      // Header background White
       p_doc.setFillColor(255, 255, 255);
       p_doc.rect(0, 0, 210, 40, 'F');
       
-      // Red Box for TIRANTE®
-      p_doc.setFillColor(212, 32, 35); // Rojo Carmesí #D42023
-      p_doc.roundedRect(12, 10, 52, 16, 2, 2, 'F');
-      
-      p_doc.setTextColor(255, 255, 255);
-      p_doc.setFontSize(24);
+      p_doc.setTextColor(0, 0, 0);
+      p_doc.setFontSize(26);
       p_doc.setFont('helvetica', 'bold');
       p_doc.text('TIRANTE', 15, 22);
       
-      // Separate ® in white
+      // Separate ®
       p_doc.setFontSize(14);
       p_doc.setFont('helvetica', 'normal');
-      p_doc.text('®', 58, 19);
+      p_doc.text('®', 63, 20); // Positioned next to TIRANTE
       
-      // Red Separator Line to the right of the box
-      p_doc.setLineWidth(0.6);
-      p_doc.setDrawColor(212, 32, 35);
-      p_doc.line(68, 10, 68, 26);
+      // Vertical Red Separator Line
+      p_doc.setLineWidth(0.8);
+      p_doc.setDrawColor(212, 32, 35); // Rojo Carmesí #D42023
+      p_doc.line(72, 13, 72, 26);
       
       // Slogan in Black
       p_doc.setTextColor(0, 0, 0);
       p_doc.setFontSize(16);
       p_doc.setFont('helvetica', 'normal');
-      p_doc.text('Bienes Raices.', 72, 22);
+      p_doc.text('Bienes Raices.', 78, 22);
       
       p_doc.setTextColor(10, 31, 68); // Navy Blue
       p_doc.setFontSize(8.5);
-      p_doc.text('Oficina Pinamar: Martillero Diego A. Tirante', 12, 34);
+      p_doc.text('Oficina Pinamar: Martillero Diego A. Tirante', 15, 34);
       
-      // Labels in Navy Blue on white background
+      // Labels in Navy Blue
       p_doc.setFontSize(9);
       p_doc.text(`LIQUIDACIÓN: ${context.opNumber}`, 150, 15);
       p_doc.text(`PROPIEDAD: ${context.propertyCode}`, 150, 22);
@@ -1789,21 +1785,19 @@ export default function App() {
     <div className="min-h-screen bg-bg-gray flex flex-col items-center justify-center p-4 md:p-8">
       {/* Branding Overlay */}
       <div className="mb-14 flex flex-col items-center w-full max-w-5xl">
-         <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-5 px-4">
-            {/* Red Box for TIRANTE® */}
-            <div className="bg-primary-red rounded-xl md:rounded-2xl px-5 py-3 md:px-8 md:py-6 flex items-center shadow-xl shadow-primary-red/15 border border-primary-red/10">
-              <div className="flex items-start">
-                <span className="text-white font-bold text-[34px] md:text-[54px] leading-none tracking-tight">TIRANTE</span>
-                <span className="text-white font-normal text-[14px] md:text-[21px] ml-1 mt-1 md:mt-2">®</span>
-              </div>
+         <div className="flex flex-col md:flex-row items-center justify-center gap-5 md:gap-7 px-4">
+            {/* Section 1: TIRANTE® */}
+            <div className="flex items-start">
+              <span className="text-black font-bold text-[38px] md:text-[59px] leading-none tracking-tight">TIRANTE</span>
+              <span className="text-black font-normal text-[16px] md:text-[23px] ml-1 mt-1 md:mt-2">®</span>
             </div>
 
             {/* Red Separator Bar */}
-            <div className="w-[1.5px] md:w-[2.5px] h-[32px] md:h-[50px] bg-primary-red self-center mx-2 hidden md:block"></div>
+            <div className="w-[3px] md:w-[4px] h-[34px] md:h-[54px] bg-primary-red mx-1 hidden md:block"></div>
             
-            {/* Slogan in Black */}
-            <div className="text-black font-medium text-[18px] md:text-[27px] leading-none flex items-center h-full">
-              Bienes Raices.
+            {/* Section 2: Bienes Raices. */}
+            <div className="flex items-center h-full">
+              <span className="text-black font-medium text-[18px] md:text-[28px] leading-none tracking-normal">Bienes Raices.</span>
             </div>
          </div>
          
