@@ -1,57 +1,54 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Montserrat', sans-serif;
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Outfit', sans-serif;
   
-  --color-primary-red: #D42023;    
-  --color-navy-blue: #0A1F44;      
+  --color-brand-red: #D42023;    
   --color-brand-blue: #1A53FF;
-  --color-electric-blue: #1A53FF;  
-  --color-lime-accent: #97D700;    
-  --color-graphite: #334155;       
-  --color-light-gray: #F8FAFC;     
+  --color-google-blue: #1A53FF;
+  --color-google-red: #D42023;
+  --color-google-green: #137333;
+  --color-google-green-light: #E6F4EA;
+  --color-google-blue-light: #E8F0FE;
   
-  --color-brand-gray: #F1F5F9;     
-  --color-dark-text: #1E293B;      
-  --color-slate-gray: #64748B;
-  --color-bg-gray: #F8FAFC;
+  --color-text-title: #1E1E1E;
+  --color-text-body: #444746;
+  --color-text-label: #444746;
   
-  --color-surface: #FFFFFF;
-  --color-card-border: #E2E8F0;
+  --color-bg-primary: #F8F9FA;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-input: #F1F3F4;
+  --color-border-light: #E0E3E1;
 }
 
 @layer base {
   body {
-    @apply bg-bg-gray text-dark-text font-sans antialiased overflow-x-hidden selection:bg-lime-accent/30;
+    @apply bg-bg-primary text-text-body font-sans antialiased overflow-x-hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-text-title font-medium;
   }
 }
 
 .modern-card {
-  @apply bg-white rounded-xl shadow-sm border border-card-border overflow-hidden transition-all duration-300;
+  @apply bg-bg-surface rounded-[24px] shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-border-light overflow-hidden transition-all duration-300;
 }
 
 .modern-input {
-  @apply w-full bg-brand-gray border border-transparent rounded-xl py-3 px-12 text-dark-text font-medium focus:bg-white focus:border-brand-blue/30 focus:ring-4 focus:ring-brand-blue/5 outline-none transition-all placeholder:text-slate-gray/50;
+  @apply w-full bg-bg-input border-none rounded-[16px] py-4 px-12 text-text-title font-medium focus:bg-white focus:ring-2 focus:ring-brand-blue/20 outline-none transition-all placeholder:text-text-label/50;
 }
 
 .modern-pill-tab {
-  @apply px-6 py-2 rounded-lg font-display font-semibold transition-all duration-300 transform active:scale-95;
-}
-
-.btn-lime {
-  @apply bg-lime-accent text-white font-display font-bold py-3 px-8 rounded-xl shadow-lg shadow-lime-accent/10 hover:shadow-lime-accent/20 active:scale-95 transition-all;
-}
-
-.btn-blue {
-  @apply bg-brand-blue text-white font-display font-bold py-3 px-8 rounded-xl shadow-lg shadow-brand-blue/10 hover:shadow-brand-blue/20 active:scale-95 transition-all;
+  @apply px-8 py-2.5 rounded-full font-medium transition-all duration-300 transform active:scale-95 text-sm;
 }
 
 .micro-label {
-  @apply text-[12px] uppercase font-display font-semibold text-slate-gray mb-1.5 ml-1 tracking-wider;
+  @apply text-[11px] uppercase font-medium text-text-label mb-2 ml-1 tracking-[0.5px];
 }
 
-.glass-card {
-  @apply bg-white/80 backdrop-blur-md border border-white/20 rounded-xl;
+.avatar-circle {
+  @apply w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300;
 }
