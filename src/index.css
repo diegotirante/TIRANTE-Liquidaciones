@@ -1,25 +1,25 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Poppins:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
-  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Montserrat', sans-serif;
   
   --color-primary-red: #D42023;    
   --color-navy-blue: #0A1F44;      
-  --color-electric-blue: #0A1F44;  /* Updated to Navy as requested */
+  --color-brand-blue: #1A53FF;
+  --color-electric-blue: #1A53FF;  
   --color-lime-accent: #97D700;    
   --color-graphite: #334155;       
-  --color-light-gray: #F0F2F5;     
+  --color-light-gray: #F8FAFC;     
   
-  --color-brand-gray: #F0F2F5;     
-  --color-dark-text: #0A1F44;      
-  --color-input-bg: #334155;
-  --color-slate-gray: #718096;
-  --color-bg-gray: #F0F2F5;
+  --color-brand-gray: #F1F5F9;     
+  --color-dark-text: #1E293B;      
+  --color-slate-gray: #64748B;
+  --color-bg-gray: #F8FAFC;
   
-  --color-surface: #F0F2F5;
-  --color-card-border: rgba(10, 31, 68, 0.1);
+  --color-surface: #FFFFFF;
+  --color-card-border: #E2E8F0;
 }
 
 @layer base {
@@ -29,25 +29,29 @@
 }
 
 .modern-card {
-  @apply bg-light-gray rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-navy-blue/10 overflow-hidden transition-all duration-300;
+  @apply bg-white rounded-xl shadow-sm border border-card-border overflow-hidden transition-all duration-300;
 }
 
 .modern-input {
-  @apply w-full bg-input-bg border border-transparent rounded-2xl py-4 px-12 text-white font-medium focus:border-white/30 focus:ring-4 focus:ring-white/5 outline-none transition-all placeholder:text-gray-400;
+  @apply w-full bg-brand-gray border border-transparent rounded-xl py-3 px-12 text-dark-text font-medium focus:bg-white focus:border-brand-blue/30 focus:ring-4 focus:ring-brand-blue/5 outline-none transition-all placeholder:text-slate-gray/50;
 }
 
 .modern-pill-tab {
-  @apply px-8 py-3 rounded-full font-display font-semibold transition-all duration-300 transform active:scale-95;
+  @apply px-6 py-2 rounded-lg font-display font-semibold transition-all duration-300 transform active:scale-95;
 }
 
 .btn-lime {
-  @apply bg-lime-accent text-white font-display font-bold py-4 px-8 rounded-2xl shadow-lg shadow-lime-accent/20 hover:shadow-lime-accent/40 active:scale-95 transition-all;
+  @apply bg-lime-accent text-white font-display font-bold py-3 px-8 rounded-xl shadow-lg shadow-lime-accent/10 hover:shadow-lime-accent/20 active:scale-95 transition-all;
 }
 
 .btn-blue {
-  @apply bg-navy-blue text-white font-display font-bold py-4 px-8 rounded-2xl shadow-lg shadow-navy-blue/20 hover:shadow-navy-blue/40 active:scale-95 transition-all;
+  @apply bg-brand-blue text-white font-display font-bold py-3 px-8 rounded-xl shadow-lg shadow-brand-blue/10 hover:shadow-brand-blue/20 active:scale-95 transition-all;
 }
 
 .micro-label {
-  @apply text-[12px] uppercase font-display font-bold text-navy-blue/60 mb-2 ml-1 tracking-[0.05em];
+  @apply text-[12px] uppercase font-display font-semibold text-slate-gray mb-1.5 ml-1 tracking-wider;
+}
+
+.glass-card {
+  @apply bg-white/80 backdrop-blur-md border border-white/20 rounded-xl;
 }

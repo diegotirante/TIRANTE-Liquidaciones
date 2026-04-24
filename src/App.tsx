@@ -722,28 +722,28 @@ const LiquidationEngine = () => {
   };
 
   return (
-    <div className="flex flex-col gap-10">
-      <div className="modern-card p-6 md:p-10 flex flex-col min-h-screen md:min-h-0 box-border text-navy-blue">
+    <div className="flex flex-col gap-8">
+      <div className="modern-card p-6 md:p-10 flex flex-col min-h-screen md:min-h-0 box-border text-dark-text">
       {/* Header with Title */}
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
          <div className="flex flex-col gap-1">
-              <div className="bg-navy-blue/10 p-3 rounded-2xl">
-                <Calculator className="text-navy-blue w-6 h-6" />
+              <div className="bg-brand-blue/10 p-3 rounded-xl w-max">
+                <Calculator className="text-brand-blue w-6 h-6" />
               </div>
-              <h1 className="text-2xl md:text-3xl font-display font-bold text-navy-blue tracking-tight">Liquidación de Operación</h1>
-            <p className="text-sm text-navy-blue/70 font-display font-medium">Protocolo Interno de Gestión de Comisiones</p>
+              <h1 className="text-2xl md:text-3xl font-display font-bold text-navy-blue tracking-tight mt-3">Liquidación de Operación</h1>
+            <p className="text-sm text-slate-gray font-medium">Protocolo Interno de Gestión de Comisiones</p>
          </div>
 
-         <div className="flex gap-2 bg-slate-100 p-1.5 rounded-[20px] self-start md:self-center">
+         <div className="flex gap-1.5 bg-brand-gray p-1 rounded-xl self-start md:self-center border border-slate-200">
             <button 
               onClick={() => setActiveTab('ALQUILER')}
-              className={`modern-pill-tab text-sm ${activeTab === 'ALQUILER' ? 'bg-white text-navy-blue shadow-md' : 'text-navy-blue/50 hover:text-navy-blue'}`}
+              className={`modern-pill-tab text-xs uppercase tracking-wider ${activeTab === 'ALQUILER' ? 'bg-white text-brand-blue shadow-sm' : 'text-slate-gray hover:text-navy-blue'}`}
             >
               Alquileres
             </button>
             <button 
               onClick={() => setActiveTab('VENTA')}
-              className={`modern-pill-tab text-sm ${activeTab === 'VENTA' ? 'bg-white text-navy-blue shadow-md' : 'text-navy-blue/50 hover:text-navy-blue'}`}
+              className={`modern-pill-tab text-xs uppercase tracking-wider ${activeTab === 'VENTA' ? 'bg-white text-brand-blue shadow-sm' : 'text-slate-gray hover:text-navy-blue'}`}
             >
               Ventas
             </button>
@@ -755,22 +755,22 @@ const LiquidationEngine = () => {
         <div className="flex-1 min-w-[240px]">
            <label className="micro-label">Código Propiedad</label>
            <div className="relative group">
-             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
+             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
              <input 
               type="text" 
-              className="modern-input pl-12 py-3.5 font-display font-bold tracking-widest text-white" 
+              className="modern-input pl-12 py-3 font-display font-bold tracking-widest" 
               value={propertyCode} 
               onChange={(e) => setPropertyCode(e.target.value)} 
              />
            </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <div className="flex flex-col">
             <label className="micro-label">Gestión</label>
             <button 
               onClick={() => setIsOfficeOnly(!isOfficeOnly)}
-              className={`px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest border transition-all ${isOfficeOnly ? 'bg-navy-blue border-navy-blue text-white shadow-lg shadow-navy-blue/20' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+              className={`px-5 py-2.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-widest border transition-all ${isOfficeOnly ? 'bg-brand-blue border-brand-blue text-white shadow-md shadow-brand-blue/20' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'}`}
             >
               {isOfficeOnly ? 'Modo Oficina' : 'Modo Agente'}
             </button>
@@ -778,16 +778,16 @@ const LiquidationEngine = () => {
           
           <div className="flex flex-col">
             <label className="micro-label">Cambio</label>
-            <div className="flex bg-slate-100 p-1 rounded-2xl">
+            <div className="flex bg-brand-gray p-1 rounded-xl border border-slate-200">
               <button 
                 onClick={() => setIsPesos(false)}
-                className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${!isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-display font-bold uppercase transition-all ${!isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
               >
                 USD
               </button>
               <button 
                 onClick={() => setIsPesos(true)}
-                className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-display font-bold uppercase transition-all ${isPesos ? 'bg-white text-navy-blue shadow-sm' : 'text-slate-500'}`}
               >
                 ARS
               </button>
@@ -803,10 +803,10 @@ const LiquidationEngine = () => {
             {activeTab === 'ALQUILER' ? 'Precio Publicación' : 'Monto Venta'} ({isPesos ? 'ARS' : 'USD'})
           </label>
           <div className="relative group">
-            <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
+            <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
             <input 
               type="number"
-              className="modern-input pl-12"
+              className="modern-input pl-12 font-mono font-bold"
               value={opAmount}
               onChange={(e) => {
                 const val = Number(e.target.value);
@@ -819,7 +819,7 @@ const LiquidationEngine = () => {
             />
           </div>
           {activeTab === 'ALQUILER' && (
-            <p className="text-[10px] text-navy-blue/70 mt-2 ml-1 font-display font-semibold flex items-center gap-1">
+            <p className="text-[10px] text-brand-blue/70 mt-2 ml-1 font-display font-semibold flex items-center gap-1">
               <CheckSquare className="w-3 h-3" /> Incluye Base + 10% + Limpieza
             </p>
           )}
@@ -829,10 +829,10 @@ const LiquidationEngine = () => {
           <div className="flex flex-col">
             <label className="micro-label">Valor a Escriturar</label>
             <div className="relative group">
-              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
+              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
               <input 
                 type="number"
-                className="modern-input pl-12"
+                className="modern-input pl-12 font-mono"
                 value={valorDeclarar}
                 onChange={(e) => setValorDeclarar(Number(e.target.value))}
                 placeholder="Valor declarar"
@@ -844,10 +844,10 @@ const LiquidationEngine = () => {
         <div className="flex flex-col">
           <label className="micro-label">Tipo de Cambio</label>
           <div className="relative group">
-            <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
+            <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
             <input 
               type="number"
-              className={`modern-input pl-12 ${!isPesos && 'opacity-40 cursor-not-allowed bg-slate-50'}`}
+              className={`modern-input pl-12 font-mono ${!isPesos && 'opacity-40 cursor-not-allowed bg-slate-50'}`}
               value={exchangeRate}
               onChange={(e) => setExchangeRate(Number(e.target.value))}
               disabled={!isPesos}
@@ -860,14 +860,14 @@ const LiquidationEngine = () => {
             <div className="flex flex-col">
               <label className="micro-label">Agente Responsable</label>
               <div className="relative group">
-                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
+                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
                 <input type="text" className="modern-input pl-12" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
               </div>
             </div>
             <div className="flex flex-col">
               <label className="micro-label">Origen Captación</label>
               <div className="relative group">
-                <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
+                <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
                 <select 
                   className="modern-input pl-12 appearance-none"
                   value={source}
@@ -876,7 +876,7 @@ const LiquidationEngine = () => {
                   <option value="PROPIA">Propia Agente (30%)</option>
                   <option value="OFICINA">Oficina (25%)</option>
                 </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-gray/50 pointer-events-none" />
               </div>
             </div>
           </>
@@ -885,7 +885,7 @@ const LiquidationEngine = () => {
         <div className="flex flex-col">
           <label className="micro-label">N° de Folio / OP</label>
           <div className="relative group">
-            <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
+            <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
             <input type="text" className="modern-input pl-12 font-mono" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
           </div>
         </div>
@@ -894,20 +894,20 @@ const LiquidationEngine = () => {
           <div className="flex flex-col">
             <label className="micro-label">Gastos Limpieza</label>
             <div className="relative group">
-              <RotateCcw className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
-              <input type="number" className="modern-input pl-12" value={cleaningGastos} onChange={(e) => setCleaningGastos(Number(e.target.value))} />
+              <RotateCcw className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
+              <input type="number" className="modern-input pl-12 font-mono" value={cleaningGastos} onChange={(e) => setCleaningGastos(Number(e.target.value))} />
             </div>
           </div>
         ) : (
           <div className="flex flex-col">
              <label className="micro-label">Esquema Gastos</label>
              <div className="relative group">
-                <LayoutDashboard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
+                <LayoutDashboard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/40 group-focus-within:text-brand-blue transition-colors" />
                 <select className="modern-input pl-12 appearance-none" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
                   <option value="COMPARTIDO">Gastos Compartidos</option>
                   <option value="LIBRE">Libre de Gastos</option>
                 </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-gray/50 pointer-events-none" />
              </div>
           </div>
         )}
@@ -917,28 +917,30 @@ const LiquidationEngine = () => {
          <div className="flex flex-col">
             <label className="micro-label">% Comisión Comprador</label>
             <div className="relative">
-               <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-               <input type="number" className="modern-input pl-12" value={commCompradorPct} onChange={(e) => setCommCompradorPct(Number(e.target.value))} />
+               <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/30" />
+               <input type="number" className="modern-input pl-12 font-mono" value={commCompradorPct} onChange={(e) => setCommCompradorPct(Number(e.target.value))} />
             </div>
          </div>
          <div className="flex flex-col">
             <label className="micro-label">% Comisión Vendedor</label>
             <div className="relative">
-               <TrendingDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-               <input type="number" className="modern-input pl-12" value={commVendedorPct} onChange={(e) => setCommVendedorPct(Number(e.target.value))} />
+               <TrendingDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-gray/30" />
+               <input type="number" className="modern-input pl-12 font-mono" value={commVendedorPct} onChange={(e) => setCommVendedorPct(Number(e.target.value))} />
             </div>
          </div>
       </div>
       
-      <div className="mb-8 p-6 bg-slate-50/50 rounded-[24px] border border-slate-100 space-y-6">
+      <div className="mb-8 p-6 bg-brand-gray/50 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-navy-blue" />
-            <span className="text-xs font-bold text-navy-blue uppercase tracking-widest">Colaboración Inmobiliaria</span>
+            <div className="w-8 h-8 rounded-lg bg-brand-blue/10 flex items-center justify-center">
+              <Users className="w-5 h-5 text-brand-blue" />
+            </div>
+            <span className="text-xs font-display font-bold text-navy-blue uppercase tracking-widest">Colaboración Inmobiliaria</span>
           </div>
           <button 
             onClick={() => setIsCompartida(!isCompartida)}
-            className={`px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm ${isCompartida ? 'bg-primary-red text-white' : 'bg-white text-slate-400 border border-slate-200'}`}
+            className={`px-5 py-2 rounded-lg text-[10px] font-display font-bold uppercase transition-all shadow-sm border ${isCompartida ? 'bg-primary-red border-primary-red text-white' : 'bg-white text-slate-400 border-slate-200'}`}
           >
             {isCompartida ? 'OPERACIÓN COMPARTIDA' : 'OPERACIÓN PROPIA'}
           </button>
@@ -979,7 +981,7 @@ const LiquidationEngine = () => {
                     {shareBuyer && <CheckSquare className="w-4 h-4" />}
                   </div>
                   <input type="checkbox" checked={shareBuyer} onChange={(e) => setShareBuyer(e.target.checked)} className="hidden" />
-                  <span className="text-[11px] font-bold text-navy-blue uppercase tracking-tight group-hover:text-navy-blue transition-colors">Cede Punta Compradora</span>
+                  <span className="text-[11px] font-display font-semibold text-slate-gray uppercase tracking-tight group-hover:text-brand-blue transition-colors">Cede Punta Compradora</span>
                 </label>
 
                 <label className="flex items-center gap-3 cursor-pointer group">
@@ -987,7 +989,7 @@ const LiquidationEngine = () => {
                     {shareSeller && <CheckSquare className="w-4 h-4" />}
                   </div>
                   <input type="checkbox" checked={shareSeller} onChange={(e) => setShareSeller(e.target.checked)} className="hidden" />
-                  <span className="text-[11px] font-bold text-navy-blue uppercase tracking-tight group-hover:text-navy-blue transition-colors">Cede Punta Vendedora</span>
+                  <span className="text-[11px] font-display font-semibold text-slate-gray uppercase tracking-tight group-hover:text-brand-blue transition-colors">Cede Punta Vendedora</span>
                 </label>
              </div>
           </div>
@@ -995,15 +997,17 @@ const LiquidationEngine = () => {
       </div>
 
       {activeTab === 'VENTA' && (
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-6 border-t border-slate-100">
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 flex items-center justify-between mb-2">
-               <div className="flex items-center gap-2">
-                 <Building2 className="w-5 h-5 text-navy-blue" />
-                 <span className="text-xs font-bold text-navy-blue uppercase tracking-widest">Escritura y Gastos</span>
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10 pt-8 border-t border-slate-100">
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 flex items-center justify-between mb-4">
+               <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-lg bg-brand-blue/10 flex items-center justify-center">
+                   <FileText className="w-5 h-5 text-brand-blue" />
+                 </div>
+                 <span className="text-xs font-display font-bold text-navy-blue uppercase tracking-widest">Escritura y Gastos</span>
                </div>
                <button 
                  onClick={() => setIsTracto(!isTracto)}
-                 className={`px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm ${isTracto ? 'bg-primary-red text-white' : 'bg-white text-slate-400 border border-slate-200'}`}
+                 className={`px-6 py-2 rounded-xl text-[10px] font-display font-bold uppercase transition-all shadow-sm border ${isTracto ? 'bg-primary-red border-primary-red text-white' : 'bg-white text-slate-400 border-slate-200 hover:text-navy-blue'}`}
                >
                  {isTracto ? 'Abreviado (Sucesión)' : 'Escritura Directa'}
                </button>
@@ -1378,112 +1382,111 @@ const LiquidationEngine = () => {
       )}
 
       {/* Main Results Display */}
-      <div className="flex-1 bg-white rounded-[40px] p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] space-y-12 relative overflow-hidden border border-slate-100">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-navy-blue/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-lime-accent/5 rounded-full -ml-24 -mb-24 blur-3xl"></div>
+      <div className="flex-1 bg-white rounded-xl p-8 shadow-sm space-y-12 relative overflow-hidden border border-slate-200">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-blue/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
         
         <div className="space-y-8 relative z-10 text-center md:text-left">
-          <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 border-b border-slate-50 pb-8">
+          <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 border-b border-slate-100 pb-8">
                <div className="flex flex-col">
-                  <span className="text-[12px] uppercase text-navy-blue/50 font-display font-bold tracking-[0.3em] mb-3">Comisión Bruta de la Agencia</span>
+                  <span className="micro-label mb-3">Comisión Bruta de la Agencia</span>
                   <div className="flex items-center justify-center md:justify-start gap-4">
-                     <div className="w-3 h-10 bg-primary-red rounded-full"></div>
-                     <span className="text-5xl md:text-6xl font-display font-bold text-navy-blue tracking-tighter leading-none">{formatCurrency(results.totalAgency)}</span>
+                     <div className="w-1.5 h-10 bg-brand-blue rounded-full"></div>
+                     <span className="text-4xl md:text-6xl font-mono font-bold text-navy-blue tracking-tighter leading-none">{formatCurrency(results.totalAgency)}</span>
                   </div>
                </div>
             {isOfficeOnly && (
-               <span className="bg-navy-blue text-white text-[11px] font-black px-6 py-2.5 rounded-full tracking-[0.2em] shadow-xl shadow-navy-blue/20 uppercase">Gestión 100% Oficina</span>
+               <span className="bg-navy-blue text-white text-[10px] font-display font-bold px-5 py-2 rounded-lg tracking-[0.2em] shadow-lg shadow-navy-blue/20 uppercase">Gestión 100% Oficina</span>
             )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="p-8 bg-slate-50/80 rounded-[32px] border border-white shadow-sm hover:shadow-md transition-shadow group">
+            <div className="p-8 bg-[#F0FDF4] rounded-xl border border-green-100 shadow-sm transition-shadow group">
               <div className="flex items-center gap-3 mb-4">
-                <ChevronDown className="w-5 h-5 text-navy-blue" />
-                <span className="text-[11px] uppercase text-slate-gray font-black tracking-widest leading-none">
-                   {results.type === 'ALQUILER' ? 'Recibe Propietario' : 'Neto p/Vendedor'}
+                <ChevronDown className="w-5 h-5 text-green-600" />
+                <span className="text-[11px] uppercase text-green-700 font-display font-bold tracking-widest leading-none">
+                   {results.type === 'ALQUILER' ? 'Recibe Propietario' : 'Neto a Recibir'}
                 </span>
               </div>
-              <span className="text-3xl font-black text-navy-blue transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)}</span>
+              <span className="text-3xl md:text-4xl font-mono font-bold text-[#15803D] transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)}</span>
             </div>
-            <div className="p-8 bg-slate-50/80 rounded-[32px] border border-white shadow-sm hover:shadow-md transition-shadow group">
+            <div className="p-8 bg-brand-gray rounded-xl border border-slate-200 shadow-sm transition-shadow group">
               <div className="flex items-center gap-3 mb-4">
-                <TrendingUp className="w-5 h-5 text-lime-accent" />
-                <span className="text-[11px] uppercase text-slate-gray font-black tracking-widest leading-none">
-                  {results.type === 'ALQUILER' ? 'Precio de Lista' : 'Total a Entregar (Cliente)'}
+                <TrendingUp className="w-5 h-5 text-brand-blue" />
+                <span className="text-[11px] uppercase text-slate-gray font-display font-bold tracking-widest leading-none">
+                  {results.type === 'ALQUILER' ? 'Precio de Lista' : 'Total p/Comprador'}
                 </span>
               </div>
-              <span className="text-3xl font-black text-navy-blue transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? opAmount : results.totalOperacion)}</span>
+              <span className="text-3xl md:text-4xl font-mono font-bold text-navy-blue transition-all group-hover:scale-105 origin-left inline-block">{formatCurrency(results.type === 'ALQUILER' ? opAmount : results.totalOperacion)}</span>
             </div>
           </div>
         </div>
 
         {/* Improved Split Breakdown */}
-        <div className="space-y-8 relative z-10 mt-12 bg-slate-50/50 p-8 rounded-[32px] border border-slate-100">
+        <div className="space-y-8 relative z-10 mt-12 bg-brand-gray/30 p-8 rounded-xl border border-slate-100">
           <div className="flex items-center gap-4">
-            <Users className="w-5 h-5 text-slate-400" />
-            <span className="text-[11px] uppercase text-slate-400 font-bold tracking-[0.3em]">Distribución del Honorario</span>
-            <div className="h-[1px] flex-1 bg-slate-200/50"></div>
+            <Users className="w-4 h-4 text-slate-400" />
+            <span className="text-[10px] uppercase text-slate-400 font-display font-bold tracking-[0.3em]">Distribución del Honorario</span>
+            <div className="h-[1px] flex-1 bg-slate-200"></div>
           </div>
 
           {!isOfficeOnly ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 space-y-4">
-                <div className="flex justify-between items-center bg-white px-6 py-4 rounded-[20px] border border-slate-100 shadow-sm hover:border-navy-blue/20 transition-colors">
+                <div className="flex justify-between items-center bg-white px-6 py-4 rounded-xl border border-slate-100 shadow-sm hover:border-brand-blue/20 transition-colors">
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-navy-blue uppercase font-display font-bold tracking-wider mb-1">Agente Responsable</span>
-                    <span className="text-sm font-bold text-navy-blue">{agentName}</span>
+                    <span className="text-[10px] text-slate-gray uppercase font-display font-bold tracking-wider mb-1">Agente Responsable</span>
+                    <span className="text-sm font-semibold text-navy-blue">{agentName}</span>
                   </div>
-                  <span className="text-xl font-display font-bold text-navy-blue">{formatCurrency(results.agent)}</span>
+                  <span className="text-xl font-mono font-bold text-navy-blue">{formatCurrency(results.agent)}</span>
                 </div>
 
                 {coAgencyName === 'AGENTE OFICINA' && (
-                  <div className="flex justify-between items-center bg-white px-6 py-4 rounded-[20px] border border-slate-100 shadow-sm hover:border-primary-red/20 transition-colors">
+                  <div className="flex justify-between items-center bg-white px-6 py-4 rounded-xl border border-slate-100 shadow-sm hover:border-primary-red/20 transition-colors">
                     <div className="flex flex-col">
-                      <span className="text-[10px] text-primary-red uppercase font-bold tracking-wider mb-1">Co-Agente Oficina</span>
-                      <span className="text-sm font-bold text-navy-blue">{coAgentName || '---'}</span>
+                      <span className="text-[10px] text-primary-red uppercase font-display font-bold tracking-wider mb-1">Co-Agente Oficina</span>
+                      <span className="text-sm font-semibold text-navy-blue">{coAgentName || '---'}</span>
                     </div>
-                    <span className="text-xl font-black text-primary-red">{formatCurrency(results.agent2 || 0)}</span>
+                    <span className="text-xl font-mono font-bold text-primary-red">{formatCurrency(results.agent2 || 0)}</span>
                   </div>
                 )}
 
                 {isCompartida && coAgencyName !== 'AGENTE OFICINA' && (
-                  <div className="flex justify-between items-center bg-white px-6 py-4 rounded-[20px] border border-primary-red/20 shadow-lg shadow-primary-red/5">
+                  <div className="flex justify-between items-center bg-white px-6 py-4 rounded-xl border border-primary-red/10 shadow-sm hover:border-primary-red/20 transition-colors">
                     <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-gray uppercase font-bold tracking-wider mb-1">Inmobiliaria Colega (50/50)</span>
-                      <span className="text-sm font-bold text-navy-blue">{coAgencyName || 'AGENCIA'}</span>
+                      <span className="text-[10px] text-slate-gray uppercase font-display font-bold tracking-wider mb-1">Inmobiliaria Colega (50/50)</span>
+                      <span className="text-sm font-semibold text-navy-blue">{coAgencyName || 'AGENCIA'}</span>
                     </div>
-                    <span className="text-xl font-black text-primary-red">{formatCurrency(results.externalShareAmount || 0)}</span>
+                    <span className="text-xl font-mono font-bold text-primary-red">{formatCurrency(results.externalShareAmount || 0)}</span>
                   </div>
                 )}
               </div>
 
-              <div className="lg:col-span-5 bg-navy-blue p-8 rounded-[32px] flex flex-col justify-center items-center text-center shadow-2xl shadow-navy-blue/30 relative overflow-hidden group">
+              <div className="lg:col-span-5 bg-gradient-to-br from-[#0A1F44] to-[#1A2E50] p-8 rounded-xl flex flex-col justify-center items-center text-center shadow-xl shadow-navy-blue/20 relative overflow-hidden group border border-white/5">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/10 transition-colors"></div>
-                <span className="text-[11px] text-white/50 font-black uppercase mb-2 mt-1 tracking-[0.3em] z-10 leading-none">Neto Oficina (50%)</span>
-                <span className="text-4xl md:text-5xl font-black text-white z-10 tracking-tighter">{formatCurrency(results.officeNet)}</span>
+                <span className="text-[10px] text-white/40 font-display font-bold uppercase mb-2 mt-1 tracking-[0.3em] z-10 leading-none">Neto Oficina (50%)</span>
+                <span className="text-4xl font-mono font-bold text-white z-10 tracking-tighter">{formatCurrency(results.officeNet)}</span>
               </div>
             </div>
           ) : (
-            <div className="bg-navy-blue p-10 rounded-[32px] shadow-2xl shadow-navy-blue/20 border border-white/5 text-center flex flex-col items-center gap-4">
+            <div className="bg-gradient-to-br from-[#0A1F44] to-[#1A2E50] p-10 rounded-xl shadow-xl shadow-navy-blue/10 border border-white/5 text-center flex flex-col items-center gap-4">
                <Calculator className="w-8 h-8 text-white opacity-20" />
-               <span className="text-[12px] text-white font-black uppercase tracking-[0.3em]">Liquidación Directa TIRANTE®</span>
-               <span className="text-5xl font-black text-white tracking-tighter mt-2">{formatCurrency(results.officeNet)}</span>
+               <span className="text-[11px] text-white font-display font-bold uppercase tracking-[0.3em]">Liquidación Directa TIRANTE®</span>
+               <span className="text-5xl font-mono font-bold text-white tracking-tighter mt-2">{formatCurrency(results.officeNet)}</span>
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-6">
-             <div className="bg-white p-5 rounded-[24px] text-center border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                <div className="text-[9px] text-slate-gray font-black uppercase mb-2 tracking-widest opacity-60">Socio 25%</div>
-                <div className="text-base font-black text-navy-blue">{formatCurrency(results.socio)}</div>
+          <div className="grid grid-cols-3 gap-4">
+             <div className="bg-white/40 backdrop-blur-md p-5 rounded-xl text-center border border-white/40 shadow-sm group hover:bg-white/60 transition-all">
+                <div className="text-[9px] text-slate-gray font-display font-medium uppercase mb-2 tracking-[0.05em]">Socio 25%</div>
+                <div className="text-xl font-display font-black text-navy-blue">{formatCurrency(results.socio)}</div>
              </div>
-             <div className="bg-white p-5 rounded-[24px] text-center border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                <div className="text-[9px] text-slate-gray font-black uppercase mb-2 tracking-widest opacity-60">Gerente 25%</div>
-                <div className="text-base font-black text-navy-blue">{formatCurrency(results.gerente)}</div>
+             <div className="bg-white/40 backdrop-blur-md p-5 rounded-xl text-center border border-white/40 shadow-sm group hover:bg-white/60 transition-all">
+                <div className="text-[9px] text-slate-gray font-display font-medium uppercase mb-2 tracking-[0.05em]">Gerente 25%</div>
+                <div className="text-xl font-display font-black text-navy-blue">{formatCurrency(results.gerente)}</div>
              </div>
-             <div className="bg-white p-5 rounded-[24px] text-center border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                <div className="text-[9px] text-primary-red font-black uppercase mb-2 tracking-widest">Caja Ofi. 50%</div>
-                <div className="text-base font-black text-primary-red">{formatCurrency(results.cajaOficina)}</div>
+             <div className="bg-white/40 backdrop-blur-md p-5 rounded-xl text-center border border-white/40 shadow-sm group hover:bg-white/60 transition-all">
+                <div className="text-[9px] text-primary-red font-display font-medium uppercase mb-2 tracking-[0.05em]">Caja Ofi. 50%</div>
+                <div className="text-xl font-display font-black text-primary-red">{formatCurrency(results.cajaOficina)}</div>
              </div>
           </div>
         </div>
@@ -1550,20 +1553,20 @@ const LiquidationEngine = () => {
             exit={{ opacity: 0, y: 50 }}
             className="mt-8 space-y-8 pb-12"
           >
-            <div className="bg-white rounded-[40px] p-10 shadow-xl border border-slate-100">
-               <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-50">
+            <div className="bg-white rounded-xl p-8 md:p-10 shadow-sm border border-slate-200">
+               <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-100">
                   <div className="flex items-center gap-4">
-                    <div className="bg-navy-blue/10 p-4 rounded-3xl">
-                      <History className="text-navy-blue w-7 h-7" />
+                    <div className="bg-brand-blue/10 p-4 rounded-xl">
+                      <History className="text-brand-blue w-6 h-6" />
                     </div>
                     <div>
                       <h2 className="text-2xl font-display font-bold text-navy-blue tracking-tight">Dashboard Histórico</h2>
-                      <p className="text-sm text-navy-blue/40 font-display font-medium tracking-tight">Gestión consolidada de operaciones</p>
+                      <p className="text-sm text-slate-gray font-medium tracking-tight">Gestión consolidada de operaciones</p>
                     </div>
                   </div>
                   <button 
                     onClick={resetSystem}
-                    className="flex items-center gap-2 bg-slate-50 text-slate-500 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-red-50 hover:text-primary-red transition-all border border-slate-100"
+                    className="flex items-center gap-2 bg-white text-slate-400 px-6 py-3 rounded-xl text-[11px] font-display font-bold uppercase tracking-widest hover:bg-red-50 hover:text-primary-red transition-all border border-slate-200"
                   >
                     <RotateCcw size={14} />
                     Reiniciar
@@ -1576,37 +1579,40 @@ const LiquidationEngine = () => {
                     <div className="flex items-center gap-3 px-2">
                       <TrendingUp className="w-5 h-5 text-lime-accent" />
                       <h3 className="text-[13px] font-display font-bold text-navy-blue uppercase tracking-[0.1em]">Alquileres</h3>
-                      <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'ALQUILER').length}</span>
+                      <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-display font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'ALQUILER').length}</span>
                     </div>
-                    <div className="overflow-hidden rounded-[32px] border border-slate-100 bg-slate-50/30">
+                    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white">
                        <table className="w-full text-left">
                           <thead>
-                             <tr className="border-b border-slate-100">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-gray uppercase tracking-widest">OP / Agente</th>
-                                <th className="px-6 py-4 text-right text-[10px] font-black text-slate-gray uppercase tracking-widest">Comisión</th>
-                                <th className="px-6 py-4"></th>
+                             <tr className="bg-brand-gray/50 border-b border-slate-100">
+                                <th className="px-6 py-4 text-[10px] font-display font-bold text-slate-gray uppercase tracking-widest">OP / Agente</th>
+                                <th className="px-6 py-4 text-right text-[10px] font-display font-bold text-slate-gray uppercase tracking-widest">Comisión</th>
+                                <th className="px-4 py-3"></th>
                              </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 font-sans">
+                          <tbody className="divide-y divide-slate-50">
                              {savedLiquidations.filter(l => l.type === 'ALQUILER').length === 0 ? (
-                               <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-medium italic">Sin registros</td></tr>
+                               <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-300 font-display italic">Sin registros de alquiler</td></tr>
                              ) : (
                                savedLiquidations.filter(l => l.type === 'ALQUILER').map(l => (
-                                 <tr key={l.id} className="group hover:bg-white transition-all">
+                                 <tr key={l.id} className="group hover:bg-bg-gray transition-colors">
                                    <td className="px-6 py-5">
                                      <div className="flex flex-col">
-                                       <span className="text-sm font-bold text-navy-blue group-hover:text-electric-blue transition-colors cursor-pointer" onClick={() => generatePDF(l)}>{l.opNumber}</span>
-                                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{l.agentName} • {new Date(l.date).toLocaleDateString()}</span>
+                                       <span className="text-sm font-display font-bold text-navy-blue group-hover:text-brand-blue transition-colors cursor-pointer flex items-center gap-2" onClick={() => generatePDF(l)}>
+                                         <span className="bg-slate-100 text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-mono">{l.opNumber}</span>
+                                         {l.propertyCode}
+                                       </span>
+                                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight mt-1">{l.agentName} • {new Date(l.date).toLocaleDateString()}</span>
                                      </div>
                                    </td>
-                                   <td className="px-6 py-5 text-right font-black text-navy-blue text-sm">
+                                   <td className="px-6 py-5 text-right font-mono font-bold text-navy-blue text-sm">
                                      {formatCurrency(l.totalAgencyUSD)}
                                    </td>
                                    <td className="px-6 py-5 text-right">
-                                     <div className="flex items-center justify-end gap-2">
+                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                        <button 
                                          onClick={() => generatePDF(l)}
-                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-electric-blue hover:shadow-md transition-all border border-slate-100"
+                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-brand-blue hover:shadow-md transition-all border border-slate-100"
                                        >
                                          <Download size={14} />
                                        </button>
@@ -1631,37 +1637,40 @@ const LiquidationEngine = () => {
                     <div className="flex items-center gap-3 px-2">
                       <Building2 className="w-5 h-5 text-navy-blue" />
                       <h3 className="text-[13px] font-display font-bold text-navy-blue uppercase tracking-[0.1em]">Ventas</h3>
-                      <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'VENTA').length}</span>
+                      <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-display font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'VENTA').length}</span>
                     </div>
-                    <div className="overflow-hidden rounded-[32px] border border-slate-100 bg-slate-50/30">
+                    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white">
                        <table className="w-full text-left">
                           <thead>
-                             <tr className="border-b border-slate-100">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-gray uppercase tracking-widest">OP / Agente</th>
-                                <th className="px-6 py-4 text-right text-[10px] font-black text-slate-gray uppercase tracking-widest">Comisión</th>
+                             <tr className="bg-brand-gray/50 border-b border-slate-100">
+                                <th className="px-6 py-4 text-[10px] font-display font-bold text-slate-gray uppercase tracking-widest">OP / Agente</th>
+                                <th className="px-6 py-4 text-right text-[10px] font-display font-bold text-slate-gray uppercase tracking-widest">Comisión</th>
                                 <th className="px-4 py-3"></th>
                              </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 font-sans">
+                          <tbody className="divide-y divide-slate-50">
                              {savedLiquidations.filter(l => l.type === 'VENTA').length === 0 ? (
-                               <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-medium italic">Sin registros</td></tr>
+                               <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-300 font-display italic">Sin registros de venta</td></tr>
                              ) : (
                                savedLiquidations.filter(l => l.type === 'VENTA').map(l => (
-                                 <tr key={l.id} className="group hover:bg-white transition-all">
+                                 <tr key={l.id} className="group hover:bg-bg-gray transition-colors">
                                    <td className="px-6 py-5">
                                      <div className="flex flex-col">
-                                       <span className="text-sm font-bold text-navy-blue group-hover:text-electric-blue transition-colors cursor-pointer" onClick={() => generatePDF(l)}>{l.opNumber}</span>
-                                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{l.agentName} • {new Date(l.date).toLocaleDateString()}</span>
+                                       <span className="text-sm font-display font-bold text-navy-blue group-hover:text-brand-blue transition-colors cursor-pointer flex items-center gap-2" onClick={() => generatePDF(l)}>
+                                         <span className="bg-slate-100 text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-mono">{l.opNumber}</span>
+                                         {l.propertyCode}
+                                       </span>
+                                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight mt-1">{l.agentName} • {new Date(l.date).toLocaleDateString()}</span>
                                      </div>
                                    </td>
-                                   <td className="px-6 py-5 text-right font-black text-navy-blue text-sm">
+                                   <td className="px-6 py-5 text-right font-mono font-bold text-navy-blue text-sm">
                                      {formatCurrency(l.totalAgencyUSD)}
                                    </td>
                                    <td className="px-6 py-5 text-right">
-                                     <div className="flex items-center justify-end gap-2">
+                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                        <button 
                                          onClick={() => generatePDF(l)}
-                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-electric-blue hover:shadow-md transition-all border border-slate-100"
+                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-brand-blue hover:shadow-md transition-all border border-slate-100"
                                        >
                                          <Download size={14} />
                                        </button>
@@ -1687,49 +1696,50 @@ const LiquidationEngine = () => {
       </AnimatePresence>
 
             {/* FINANCIAL BOXES SECTION */}
-            <div className="space-y-6">
-              <div className="h-[1px] w-full bg-gray-200"></div>
-              <h2 className="text-center text-[10px] font-black text-navy-blue uppercase tracking-[0.5em] py-4">Centro de Gestión Financiera</h2>
+            <div className="space-y-10 mt-16 pb-20">
+              <div className="h-[1px] w-full bg-slate-100"></div>
+              <div className="text-center">
+                <h2 className="text-[10px] font-display font-black text-navy-blue uppercase tracking-[0.5em] mb-2">Centro de Gestión Financiera</h2>
+                <div className="w-12 h-1 bg-primary-red mx-auto rounded-full"></div>
+              </div>
               
               {/* PRIMARY BOX: TOTAL OFICINA */}
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center">
                 <button 
                   onClick={() => setActiveBox(activeBox === 'Caja Total' ? null : 'Caja Total')}
-                  className="group relative flex flex-col items-center justify-between p-8 bg-white rounded-[40px] shadow-2xl border-4 border-amber-500/10 hover:border-amber-500/30 transition-all active:scale-95 w-full max-w-md overflow-hidden"
+                  className={`group relative flex flex-col items-center justify-between p-10 bg-white rounded-xl shadow-xl transition-all active:scale-95 w-full max-w-lg overflow-hidden border-2 md:border-[3px] ${activeBox === 'Caja Total' ? 'border-[#D42023]' : 'border-[#D42023]/20 hover:border-[#D42023]/40'}`}
                 >
-                  <div className="bg-amber-500 p-4 rounded-3xl text-white mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-amber-500/40">
-                    <LayoutDashboard size={32} />
+                  <div className="bg-red-50 p-6 rounded-2xl text-primary-red mb-6 group-hover:scale-110 transition-transform shadow-sm">
+                    <LayoutDashboard size={40} />
                   </div>
                   <div className="text-center">
-                    <span className="text-[10px] font-black uppercase text-graphite tracking-[0.3em] block mb-2">Caja Total Oficina</span>
-                    <span className="text-3xl font-black text-navy-blue">{formatCurrency(getBoxTotal('Caja Total'))}</span>
+                    <span className="text-[11px] font-display font-bold uppercase text-slate-gray tracking-[0.3em] block mb-2">Caja Total Oficina (Efectivo)</span>
+                    <span className="text-4xl md:text-5xl font-mono font-bold text-navy-blue tracking-tighter">{formatCurrency(getBoxTotal('Caja Total'))}</span>
                   </div>
-                  {activeBox === 'Caja Total' && <div className="absolute bottom-0 left-0 w-full h-2 bg-amber-500"></div>}
                 </button>
               </div>
 
               {/* OTHER BOXES */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 {[
-                  { id: 'Agente', label: 'Agente a Liquidar', icon: <Users size={16} />, color: 'bg-emerald-500', value: getBoxTotal('Agente') },
-                  { id: 'Oficina', label: 'Caja Oficina', icon: <Building2 size={16} />, color: 'bg-slate-500', value: getBoxTotal('Oficina') },
-                  { id: 'Socio', label: 'Caja Socio', icon: <Wallet size={16} />, color: 'bg-primary-red', value: getBoxTotal('Socio') },
-                  { id: 'Gerente', label: 'Caja Gerente', icon: <Target size={16} />, color: 'bg-indigo-600', value: getBoxTotal('Gerente') },
-                  { id: 'Limpieza', label: 'Caja Limpieza', icon: <ArrowDownCircle size={16} />, color: 'bg-teal-600', value: getBoxTotal('Limpieza') },
+                  { id: 'Agente', label: 'Agente a Liquidar', icon: <Users size={20} />, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600', valColor: 'text-emerald-600', value: getBoxTotal('Agente') },
+                  { id: 'Oficina', label: 'Caja Oficina', icon: <Building2 size={20} />, iconBg: 'bg-blue-50', iconColor: 'text-blue-600', valColor: 'text-blue-600', value: getBoxTotal('Oficina') },
+                  { id: 'Socio', label: 'Caja Socio', icon: <Wallet size={20} />, iconBg: 'bg-red-50', iconColor: 'text-primary-red', valColor: 'text-primary-red', value: getBoxTotal('Socio') },
+                  { id: 'Gerente', label: 'Caja Gerente', icon: <Target size={20} />, iconBg: 'bg-indigo-50', iconColor: 'text-indigo-600', valColor: 'text-indigo-600', value: getBoxTotal('Gerente') },
+                  { id: 'Limpieza', label: 'Limpieza', icon: <ArrowDownCircle size={20} />, iconBg: 'bg-teal-50', iconColor: 'text-teal-600', valColor: 'text-teal-600', value: getBoxTotal('Limpieza') },
                 ].map(box => (
                   <button 
                     key={box.id}
                     onClick={() => setActiveBox(activeBox === box.id ? null : box.id)}
-                    className="group relative flex flex-col items-center justify-between p-5 bg-white rounded-3xl shadow-lg border border-gray-100 hover:scale-105 transition-all active:scale-95 overflow-hidden"
+                    className={`group relative flex flex-col items-center justify-between p-6 bg-white rounded-xl shadow-lg hover:shadow-xl hover:translate-y-[-4px] transition-all active:scale-95 border border-slate-100 ${activeBox === box.id ? 'ring-2 ring-[#D42023] ring-offset-2' : ''}`}
                   >
-                    <div className={`${box.color} p-2.5 rounded-2xl text-white mb-4 group-hover:rotate-12 transition-transform`}>
+                    <div className={`${box.iconBg} p-4 rounded-xl ${box.iconColor} mb-4 group-hover:rotate-12 transition-transform`}>
                       {box.icon}
                     </div>
                     <div className="text-center">
-                      <span className="text-[8px] font-black uppercase text-graphite tracking-widest block mb-1">{box.label}</span>
-                      <span className="text-xs font-black text-navy-blue">{formatCurrency(box.value)}</span>
+                      <span className="text-[9px] font-display font-medium uppercase text-slate-gray tracking-widest block mb-2">{box.label}</span>
+                      <span className={`text-base font-mono font-bold ${box.valColor}`}>{formatCurrency(box.value)}</span>
                     </div>
-                    {activeBox === box.id && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary-red"></div>}
                   </button>
                 ))}
               </div>
