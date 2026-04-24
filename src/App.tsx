@@ -808,7 +808,7 @@ const LiquidationEngine = () => {
                 <Wallet className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 text-brand-blue/40 group-focus-within:text-brand-blue transition-colors" />
                 <input 
                   type="number"
-                  className="modern-input pl-18 py-8 text-3xl font-black bg-bg-input/30 border-2 border-brand-blue/10 focus:border-brand-blue/30"
+                  className="modern-input pl-20 py-8 text-3xl font-black bg-bg-input/30 border-2 border-brand-blue/10 focus:border-brand-blue/30"
                   value={opAmount}
                   onChange={(e) => setOpAmount(Number(e.target.value))}
                   placeholder="0.00"
@@ -821,7 +821,7 @@ const LiquidationEngine = () => {
                 <Building2 className="absolute left-6 top-1/2 -translate-y-1/2 w-8 h-8 text-brand-blue/40 group-focus-within:text-brand-blue transition-colors" />
                 <input 
                   type="number"
-                  className="modern-input pl-18 py-8 text-3xl font-black bg-bg-input/30 border-2 border-brand-blue/10 focus:border-brand-blue/30"
+                  className="modern-input pl-20 py-8 text-3xl font-black bg-bg-input/30 border-2 border-brand-blue/10 focus:border-brand-blue/30"
                   value={valorDeclarar}
                   onChange={(e) => setValorDeclarar(Number(e.target.value))}
                   placeholder="0.00"
@@ -833,28 +833,38 @@ const LiquidationEngine = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="flex flex-col">
               <label className="micro-label">Tipo de Cambio</label>
-              <input 
-                type="number"
-                className={`modern-input ${!isPesos && 'opacity-40 cursor-not-allowed grayscale bg-bg-input'}`}
-                value={exchangeRate}
-                onChange={(e) => setExchangeRate(Number(e.target.value))}
-                disabled={!isPesos}
-              />
+              <div className="relative group">
+                <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue transition-colors" />
+                <input 
+                  type="number"
+                  className={`modern-input pl-12 py-4 font-bold ${!isPesos && 'opacity-40 cursor-not-allowed grayscale bg-bg-input'}`}
+                  value={exchangeRate}
+                  onChange={(e) => setExchangeRate(Number(e.target.value))}
+                  disabled={!isPesos}
+                />
+              </div>
             </div>
             {!isOfficeOnly && (
                <div className="flex flex-col">
                  <label className="micro-label">Agente Resp.</label>
-                 <input type="text" className="modern-input" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
+                 <div className="relative group">
+                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue transition-colors" />
+                    <input type="text" className="modern-input pl-12 py-4" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
+                 </div>
                </div>
             )}
             <div className="flex flex-col">
               <label className="micro-label">N° Folio / OP</label>
-              <input type="text" className="modern-input font-bold" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
+              <div className="relative group">
+                <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue transition-colors" />
+                <input type="text" className="modern-input pl-12 py-4 font-bold" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
+              </div>
             </div>
             <div className="flex flex-col">
                <label className="micro-label">Esquema Administrativo</label>
-               <div className="relative">
-                  <select className="modern-input appearance-none cursor-pointer" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
+               <div className="relative group">
+                  <LayoutDashboard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue transition-colors" />
+                  <select className="modern-input pl-12 py-4 appearance-none cursor-pointer" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
                     <option value="COMPARTIDO">Compartidos</option>
                     <option value="LIBRE">Libre de Gastos</option>
                   </select>
@@ -917,9 +927,10 @@ const LiquidationEngine = () => {
           {!isOfficeOnly && (
             <div className="flex flex-col">
               <label className="micro-label">Origen de Captación</label>
-              <div className="relative">
+              <div className="relative group">
+                <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue transition-colors" />
                 <select 
-                  className="modern-input appearance-none cursor-pointer"
+                  className="modern-input pl-12 py-4 appearance-none cursor-pointer"
                   value={source}
                   onChange={(e) => setSource(e.target.value as CaptationSource)}
                 >
@@ -937,16 +948,16 @@ const LiquidationEngine = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12 animate-in fade-in duration-500">
            <div className="flex flex-col">
               <label className="micro-label">% Comisión Comprador</label>
-              <div className="relative">
-                 <TrendingUp className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30" />
-                 <input type="number" className="modern-input pl-14 py-4 font-bold bg-bg-input/20" value={commCompradorPct} onChange={(e) => setCommCompradorPct(Number(e.target.value))} />
+              <div className="relative group">
+                 <TrendingUp className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue" />
+                 <input type="number" className="modern-input pl-16 py-4 font-bold bg-bg-input/20" value={commCompradorPct} onChange={(e) => setCommCompradorPct(Number(e.target.value))} />
               </div>
            </div>
            <div className="flex flex-col">
               <label className="micro-label">% Comisión Vendedor</label>
-              <div className="relative">
-                 <TrendingDown className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30" />
-                 <input type="number" className="modern-input pl-14 py-4 font-bold bg-bg-input/20" value={commVendedorPct} onChange={(e) => setCommVendedorPct(Number(e.target.value))} />
+              <div className="relative group">
+                 <TrendingDown className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue" />
+                 <input type="number" className="modern-input pl-16 py-4 font-bold bg-bg-input/20" value={commVendedorPct} onChange={(e) => setCommVendedorPct(Number(e.target.value))} />
               </div>
            </div>
         </div>
@@ -1105,7 +1116,7 @@ const LiquidationEngine = () => {
         <div className="h-[1px] flex-1 bg-border-light"></div>
         <button 
           onClick={() => setShowExplanation(!showExplanation)}
-          className={`group flex items-center justify-center gap-3 px-8 py-4 rounded-full border-2 transition-all duration-300 relative font-black text-xs uppercase tracking-widest ${showExplanation ? 'bg-primary-red text-white border-primary-red shadow-xl shadow-primary-red/20' : 'bg-white text-navy-blue border-navy-blue/10 hover:border-navy-blue/30 shadow-lg shadow-navy-blue/5'}`}
+          className={`group flex items-center justify-center gap-3 px-8 py-4 rounded-full border-2 transition-all duration-300 relative font-black text-xs uppercase tracking-widest ${showExplanation ? 'bg-primary-red text-white border-primary-red shadow-xl shadow-primary-red/20' : 'bg-white text-navy-blue border-navy-blue border-opacity-10 hover:border-opacity-30 shadow-lg shadow-navy-blue/5'}`}
         >
           <Calculator className={`w-5 h-5 transition-transform duration-500 ${showExplanation ? 'rotate-12 scale-110' : ''}`} />
           {showExplanation ? 'Ocultar Desglose Técnico' : 'Ver Desglose de Ingeniería'}
