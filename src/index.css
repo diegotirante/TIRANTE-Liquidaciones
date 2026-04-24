@@ -1,25 +1,25 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Poppins:wght@400;500;600&display=swap');
 
 @theme {
-  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Montserrat', sans-serif;
   
   --color-primary-red: #D42023;    
   --color-navy-blue: #0A1F44;      
-  --color-electric-blue: #2589D8;  /* Figma Primary Blue */
-  --color-lime-accent: #97D700;    /* Figma Lime Green Accent */
+  --color-electric-blue: #0A1F44;  /* Updated to Navy as requested */
+  --color-lime-accent: #97D700;    
   --color-graphite: #334155;       
-  --color-light-gray: #F5F7FA;     
+  --color-light-gray: #F0F2F5;     
   
-  --color-brand-gray: #F5F7FA;     
-  --color-dark-text: #1A202C;      
-  --color-input-bg: #FFFFFF;
+  --color-brand-gray: #F0F2F5;     
+  --color-dark-text: #0A1F44;      
+  --color-input-bg: #334155;
   --color-slate-gray: #718096;
-  --color-bg-gray: #F1F5F9;
+  --color-bg-gray: #F0F2F5;
   
-  /* Additional Figma Colors */
-  --color-surface: #FFFFFF;
-  --color-card-border: rgba(0, 0, 0, 0.05);
+  --color-surface: #F0F2F5;
+  --color-card-border: rgba(10, 31, 68, 0.1);
 }
 
 @layer base {
@@ -29,25 +29,25 @@
 }
 
 .modern-card {
-  @apply bg-surface rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-card-border overflow-hidden transition-all duration-300;
+  @apply bg-light-gray rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-navy-blue/10 overflow-hidden transition-all duration-300;
 }
 
 .modern-input {
-  @apply w-full bg-slate-50/50 border border-transparent rounded-2xl py-4 px-5 text-dark-text font-medium focus:bg-white focus:border-electric-blue/30 focus:ring-4 focus:ring-electric-blue/5 outline-none transition-all placeholder:text-gray-400;
+  @apply w-full bg-input-bg border border-transparent rounded-2xl py-4 px-12 text-white font-medium focus:border-white/30 focus:ring-4 focus:ring-white/5 outline-none transition-all placeholder:text-gray-400;
 }
 
 .modern-pill-tab {
-  @apply px-8 py-3 rounded-full font-semibold transition-all duration-300 transform active:scale-95;
+  @apply px-8 py-3 rounded-full font-display font-semibold transition-all duration-300 transform active:scale-95;
 }
 
 .btn-lime {
-  @apply bg-lime-accent text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-lime-accent/20 hover:shadow-lime-accent/40 active:scale-95 transition-all;
+  @apply bg-lime-accent text-white font-display font-bold py-4 px-8 rounded-2xl shadow-lg shadow-lime-accent/20 hover:shadow-lime-accent/40 active:scale-95 transition-all;
 }
 
 .btn-blue {
-  @apply bg-electric-blue text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-electric-blue/20 hover:shadow-electric-blue/40 active:scale-95 transition-all;
+  @apply bg-navy-blue text-white font-display font-bold py-4 px-8 rounded-2xl shadow-lg shadow-navy-blue/20 hover:shadow-navy-blue/40 active:scale-95 transition-all;
 }
 
 .micro-label {
-  @apply text-[12px] uppercase font-bold text-slate-gray mb-2 ml-1 tracking-[0.05em];
+  @apply text-[12px] uppercase font-display font-bold text-navy-blue/60 mb-2 ml-1 tracking-[0.05em];
 }

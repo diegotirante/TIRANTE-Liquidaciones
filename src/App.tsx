@@ -25,7 +25,9 @@ import {
   ChevronUp,
   Trash2,
   Target,
-  RotateCcw
+  RotateCcw,
+  Database,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -114,13 +116,23 @@ const LiquidationEngine = () => {
   
   // Dashboard & persistence
   const [savedLiquidations, setSavedLiquidations] = useState<SavedLiquidation[]>(() => {
-    const saved = localStorage.getItem('tirante_liquidations');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('tirante_liquidations');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error loading liquidations", e);
+      return [];
+    }
   });
   
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>(() => {
-    const saved = localStorage.getItem('tirante_withdrawals');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('tirante_withdrawals');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error loading withdrawals", e);
+      return [];
+    }
   });
 
   const [showDashboard, setShowDashboard] = useState<boolean>(false);
@@ -710,30 +722,28 @@ const LiquidationEngine = () => {
   };
 
   return (
-    <>
-      <div className="modern-card p-10 flex flex-col h-full box-border text-navy-blue">
+    <div className="flex flex-col gap-10">
+      <div className="modern-card p-6 md:p-10 flex flex-col min-h-screen md:min-h-0 box-border text-navy-blue">
       {/* Header with Title */}
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3">
-              <div className="bg-electric-blue/10 p-3 rounded-2xl">
-                <Calculator className="text-electric-blue w-6 h-6" />
+              <div className="bg-navy-blue/10 p-3 rounded-2xl">
+                <Calculator className="text-navy-blue w-6 h-6" />
               </div>
-              <h1 className="text-2xl md:text-3xl font-black text-navy-blue tracking-tight">Liquidación de Operación</h1>
-            </div>
-            <p className="text-sm text-slate-gray font-medium">Protocolo Interno de Gestión de Comisiones</p>
+              <h1 className="text-2xl md:text-3xl font-display font-bold text-navy-blue tracking-tight">Liquidación de Operación</h1>
+            <p className="text-sm text-navy-blue/70 font-display font-medium">Protocolo Interno de Gestión de Comisiones</p>
          </div>
 
          <div className="flex gap-2 bg-slate-100 p-1.5 rounded-[20px] self-start md:self-center">
             <button 
               onClick={() => setActiveTab('ALQUILER')}
-              className={`modern-pill-tab text-sm ${activeTab === 'ALQUILER' ? 'bg-white text-electric-blue shadow-md' : 'text-slate-500 hover:text-navy-blue'}`}
+              className={`modern-pill-tab text-sm ${activeTab === 'ALQUILER' ? 'bg-white text-navy-blue shadow-md' : 'text-navy-blue/50 hover:text-navy-blue'}`}
             >
               Alquileres
             </button>
             <button 
               onClick={() => setActiveTab('VENTA')}
-              className={`modern-pill-tab text-sm ${activeTab === 'VENTA' ? 'bg-white text-electric-blue shadow-md' : 'text-slate-500 hover:text-navy-blue'}`}
+              className={`modern-pill-tab text-sm ${activeTab === 'VENTA' ? 'bg-white text-navy-blue shadow-md' : 'text-navy-blue/50 hover:text-navy-blue'}`}
             >
               Ventas
             </button>
@@ -744,11 +754,11 @@ const LiquidationEngine = () => {
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4 pt-6 border-t border-slate-100">
         <div className="flex-1 min-w-[240px]">
            <label className="micro-label">Código Propiedad</label>
-           <div className="relative">
-             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+           <div className="relative group">
+             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
              <input 
               type="text" 
-              className="modern-input pl-12 py-3.5 font-bold tracking-widest text-electric-blue" 
+              className="modern-input pl-12 py-3.5 font-display font-bold tracking-widest text-white" 
               value={propertyCode} 
               onChange={(e) => setPropertyCode(e.target.value)} 
              />
@@ -793,7 +803,7 @@ const LiquidationEngine = () => {
             {activeTab === 'ALQUILER' ? 'Precio Publicación' : 'Monto Venta'} ({isPesos ? 'ARS' : 'USD'})
           </label>
           <div className="relative group">
-            <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+            <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
             <input 
               type="number"
               className="modern-input pl-12"
@@ -809,7 +819,7 @@ const LiquidationEngine = () => {
             />
           </div>
           {activeTab === 'ALQUILER' && (
-            <p className="text-[10px] text-electric-blue/70 mt-2 ml-1 font-semibold flex items-center gap-1">
+            <p className="text-[10px] text-navy-blue/70 mt-2 ml-1 font-display font-semibold flex items-center gap-1">
               <CheckSquare className="w-3 h-3" /> Incluye Base + 10% + Limpieza
             </p>
           )}
@@ -819,7 +829,7 @@ const LiquidationEngine = () => {
           <div className="flex flex-col">
             <label className="micro-label">Valor a Escriturar</label>
             <div className="relative group">
-              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
               <input 
                 type="number"
                 className="modern-input pl-12"
@@ -834,7 +844,7 @@ const LiquidationEngine = () => {
         <div className="flex flex-col">
           <label className="micro-label">Tipo de Cambio</label>
           <div className="relative group">
-            <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+            <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
             <input 
               type="number"
               className={`modern-input pl-12 ${!isPesos && 'opacity-40 cursor-not-allowed bg-slate-50'}`}
@@ -850,14 +860,14 @@ const LiquidationEngine = () => {
             <div className="flex flex-col">
               <label className="micro-label">Agente Responsable</label>
               <div className="relative group">
-                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
                 <input type="text" className="modern-input pl-12" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
               </div>
             </div>
             <div className="flex flex-col">
               <label className="micro-label">Origen Captación</label>
               <div className="relative group">
-                <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+                <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
                 <select 
                   className="modern-input pl-12 appearance-none"
                   value={source}
@@ -875,7 +885,7 @@ const LiquidationEngine = () => {
         <div className="flex flex-col">
           <label className="micro-label">N° de Folio / OP</label>
           <div className="relative group">
-            <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+            <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
             <input type="text" className="modern-input pl-12 font-mono" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
           </div>
         </div>
@@ -884,7 +894,7 @@ const LiquidationEngine = () => {
           <div className="flex flex-col">
             <label className="micro-label">Gastos Limpieza</label>
             <div className="relative group">
-              <RotateCcw className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+              <RotateCcw className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
               <input type="number" className="modern-input pl-12" value={cleaningGastos} onChange={(e) => setCleaningGastos(Number(e.target.value))} />
             </div>
           </div>
@@ -892,7 +902,7 @@ const LiquidationEngine = () => {
           <div className="flex flex-col">
              <label className="micro-label">Esquema Gastos</label>
              <div className="relative group">
-                <LayoutDashboard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-electric-blue transition-colors" />
+                <LayoutDashboard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-white transition-colors" />
                 <select className="modern-input pl-12 appearance-none" value={saleMode} onChange={(e) => setSaleMode(e.target.value as any)}>
                   <option value="COMPARTIDO">Gastos Compartidos</option>
                   <option value="LIBRE">Libre de Gastos</option>
@@ -923,7 +933,7 @@ const LiquidationEngine = () => {
       <div className="mb-8 p-6 bg-slate-50/50 rounded-[24px] border border-slate-100 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-electric-blue" />
+            <Users className="w-5 h-5 text-navy-blue" />
             <span className="text-xs font-bold text-navy-blue uppercase tracking-widest">Colaboración Inmobiliaria</span>
           </div>
           <button 
@@ -952,32 +962,32 @@ const LiquidationEngine = () => {
              </div>
 
              {coAgencyName === 'AGENTE OFICINA' ? (
-               <div className="flex flex-col">
-                  <label className="micro-label">Segundo Agente</label>
-                  <input type="text" className="modern-input" value={coAgentName} onChange={(e) => setCoAgentName(e.target.value)} placeholder="Nombre del agente" />
-               </div>
+            <div className="flex flex-col">
+               <label className="micro-label">Segundo Agente</label>
+               <input type="text" className="modern-input" value={coAgentName} onChange={(e) => setCoAgentName(e.target.value)} placeholder="Nombre del agente" />
+            </div>
              ) : (
-               <div className="flex flex-col">
-                  <label className="micro-label">Inmobiliaria Colega</label>
-                  <input type="text" className="modern-input" value={coAgencyName} onChange={(e) => setCoAgencyName(e.target.value)} placeholder="Ej: Keller Williams" />
-               </div>
+            <div className="flex flex-col">
+               <label className="micro-label">Inmobiliaria Colega</label>
+               <input type="text" className="modern-input" value={coAgencyName} onChange={(e) => setCoAgencyName(e.target.value)} placeholder="Ej: Keller Williams" />
+            </div>
              )}
 
              <div className="flex flex-col gap-3">
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${shareBuyer ? 'bg-electric-blue border-electric-blue text-white' : 'border-slate-200 bg-white'}`}>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${shareBuyer ? 'bg-navy-blue border-navy-blue text-white' : 'border-slate-200 bg-white'}`}>
                     {shareBuyer && <CheckSquare className="w-4 h-4" />}
                   </div>
                   <input type="checkbox" checked={shareBuyer} onChange={(e) => setShareBuyer(e.target.checked)} className="hidden" />
-                  <span className="text-[11px] font-bold text-navy-blue uppercase tracking-tight group-hover:text-electric-blue transition-colors">Cede Punta Compradora</span>
+                  <span className="text-[11px] font-bold text-navy-blue uppercase tracking-tight group-hover:text-navy-blue transition-colors">Cede Punta Compradora</span>
                 </label>
 
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${shareSeller ? 'bg-electric-blue border-electric-blue text-white' : 'border-slate-200 bg-white'}`}>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${shareSeller ? 'bg-navy-blue border-navy-blue text-white' : 'border-slate-200 bg-white'}`}>
                     {shareSeller && <CheckSquare className="w-4 h-4" />}
                   </div>
                   <input type="checkbox" checked={shareSeller} onChange={(e) => setShareSeller(e.target.checked)} className="hidden" />
-                  <span className="text-[11px] font-bold text-navy-blue uppercase tracking-tight group-hover:text-electric-blue transition-colors">Cede Punta Vendedora</span>
+                  <span className="text-[11px] font-bold text-navy-blue uppercase tracking-tight group-hover:text-navy-blue transition-colors">Cede Punta Vendedora</span>
                 </label>
              </div>
           </div>
@@ -988,7 +998,7 @@ const LiquidationEngine = () => {
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-6 border-t border-slate-100">
             <div className="col-span-1 md:col-span-2 lg:col-span-4 flex items-center justify-between mb-2">
                <div className="flex items-center gap-2">
-                 <Building2 className="w-5 h-5 text-electric-blue" />
+                 <Building2 className="w-5 h-5 text-navy-blue" />
                  <span className="text-xs font-bold text-navy-blue uppercase tracking-widest">Escritura y Gastos</span>
                </div>
                <button 
@@ -1050,7 +1060,7 @@ const LiquidationEngine = () => {
               )}
             </div>
 
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-electric-blue/5 rounded-[32px] border border-electric-blue/10">
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-navy-blue/5 rounded-[32px] border border-navy-blue/10">
                <div className="flex flex-col">
                   <label className="micro-label">Seña de Reserva</label>
                   <input type="number" className="modern-input" value={reservaMonto} onChange={(e) => setReservaMonto(Number(e.target.value))} placeholder="Monto seña" />
@@ -1369,18 +1379,18 @@ const LiquidationEngine = () => {
 
       {/* Main Results Display */}
       <div className="flex-1 bg-white rounded-[40px] p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] space-y-12 relative overflow-hidden border border-slate-100">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-electric-blue/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-navy-blue/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-lime-accent/5 rounded-full -ml-24 -mb-24 blur-3xl"></div>
         
         <div className="space-y-8 relative z-10 text-center md:text-left">
           <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 border-b border-slate-50 pb-8">
-            <div className="flex flex-col">
-              <span className="text-[12px] uppercase text-slate-gray font-black tracking-[0.3em] mb-3">Comisión Bruta de la Agencia</span>
-              <div className="flex items-center justify-center md:justify-start gap-4">
-                 <div className="w-3 h-10 bg-primary-red rounded-full"></div>
-                 <span className="text-5xl md:text-6xl font-black text-navy-blue tracking-tighter leading-none">{formatCurrency(results.totalAgency)}</span>
-              </div>
-            </div>
+               <div className="flex flex-col">
+                  <span className="text-[12px] uppercase text-navy-blue/50 font-display font-bold tracking-[0.3em] mb-3">Comisión Bruta de la Agencia</span>
+                  <div className="flex items-center justify-center md:justify-start gap-4">
+                     <div className="w-3 h-10 bg-primary-red rounded-full"></div>
+                     <span className="text-5xl md:text-6xl font-display font-bold text-navy-blue tracking-tighter leading-none">{formatCurrency(results.totalAgency)}</span>
+                  </div>
+               </div>
             {isOfficeOnly && (
                <span className="bg-navy-blue text-white text-[11px] font-black px-6 py-2.5 rounded-full tracking-[0.2em] shadow-xl shadow-navy-blue/20 uppercase">Gestión 100% Oficina</span>
             )}
@@ -1389,7 +1399,7 @@ const LiquidationEngine = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="p-8 bg-slate-50/80 rounded-[32px] border border-white shadow-sm hover:shadow-md transition-shadow group">
               <div className="flex items-center gap-3 mb-4">
-                <ChevronDown className="w-5 h-5 text-electric-blue" />
+                <ChevronDown className="w-5 h-5 text-navy-blue" />
                 <span className="text-[11px] uppercase text-slate-gray font-black tracking-widest leading-none">
                    {results.type === 'ALQUILER' ? 'Recibe Propietario' : 'Neto p/Vendedor'}
                 </span>
@@ -1419,12 +1429,12 @@ const LiquidationEngine = () => {
           {!isOfficeOnly ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 space-y-4">
-                <div className="flex justify-between items-center bg-white px-6 py-4 rounded-[20px] border border-slate-100 shadow-sm hover:border-electric-blue/20 transition-colors">
+                <div className="flex justify-between items-center bg-white px-6 py-4 rounded-[20px] border border-slate-100 shadow-sm hover:border-navy-blue/20 transition-colors">
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-slate-gray uppercase font-bold tracking-wider mb-1">Agente Responsable</span>
+                    <span className="text-[10px] text-navy-blue uppercase font-display font-bold tracking-wider mb-1">Agente Responsable</span>
                     <span className="text-sm font-bold text-navy-blue">{agentName}</span>
                   </div>
-                  <span className="text-xl font-black text-electric-blue">{formatCurrency(results.agent)}</span>
+                  <span className="text-xl font-display font-bold text-navy-blue">{formatCurrency(results.agent)}</span>
                 </div>
 
                 {coAgencyName === 'AGENTE OFICINA' && (
@@ -1543,12 +1553,12 @@ const LiquidationEngine = () => {
             <div className="bg-white rounded-[40px] p-10 shadow-xl border border-slate-100">
                <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-50">
                   <div className="flex items-center gap-4">
-                    <div className="bg-electric-blue/10 p-4 rounded-3xl">
-                      <History className="text-electric-blue w-7 h-7" />
+                    <div className="bg-navy-blue/10 p-4 rounded-3xl">
+                      <History className="text-navy-blue w-7 h-7" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-black text-navy-blue tracking-tight">Dashboard Histórico</h2>
-                      <p className="text-sm text-slate-400 font-medium tracking-tight">Gestión consolidada de operaciones</p>
+                      <h2 className="text-2xl font-display font-bold text-navy-blue tracking-tight">Dashboard Histórico</h2>
+                      <p className="text-sm text-navy-blue/40 font-display font-medium tracking-tight">Gestión consolidada de operaciones</p>
                     </div>
                   </div>
                   <button 
@@ -1565,7 +1575,7 @@ const LiquidationEngine = () => {
                   <div className="space-y-6">
                     <div className="flex items-center gap-3 px-2">
                       <TrendingUp className="w-5 h-5 text-lime-accent" />
-                      <h3 className="text-[13px] font-black text-navy-blue uppercase tracking-[0.1em]">Alquileres</h3>
+                      <h3 className="text-[13px] font-display font-bold text-navy-blue uppercase tracking-[0.1em]">Alquileres</h3>
                       <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'ALQUILER').length}</span>
                     </div>
                     <div className="overflow-hidden rounded-[32px] border border-slate-100 bg-slate-50/30">
@@ -1619,8 +1629,8 @@ const LiquidationEngine = () => {
                   {/* VENTAS */}
                   <div className="space-y-6">
                     <div className="flex items-center gap-3 px-2">
-                      <Building2 className="w-5 h-5 text-electric-blue" />
-                      <h3 className="text-[13px] font-black text-navy-blue uppercase tracking-[0.1em]">Ventas</h3>
+                      <Building2 className="w-5 h-5 text-navy-blue" />
+                      <h3 className="text-[13px] font-display font-bold text-navy-blue uppercase tracking-[0.1em]">Ventas</h3>
                       <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'VENTA').length}</span>
                     </div>
                     <div className="overflow-hidden rounded-[32px] border border-slate-100 bg-slate-50/30">
@@ -1821,7 +1831,7 @@ const LiquidationEngine = () => {
                                           <td className="px-6 py-4">
                                             <button 
                                               onClick={() => generatePDF(entry.snapshot)}
-                                              className="text-[11px] font-bold text-navy-blue border-b border-dotted border-slate-300 hover:text-electric-blue transition-colors"
+                                              className="text-[11px] font-bold text-navy-blue border-b border-dotted border-slate-300 hover:text-navy-blue transition-colors"
                                             >
                                               {entry.op}
                                             </button>
@@ -1875,15 +1885,15 @@ const LiquidationEngine = () => {
                 )}
               </AnimatePresence>
             </div>
-      </>
-    );
+    </div>
+  );
 };
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-[#F8FBFF] flex flex-col items-center justify-start p-4 md:p-12 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F8FBFF] flex flex-col items-center justify-start p-4 md:p-12 relative overflow-y-auto scroll-smooth">
       {/* Decorative background blur blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-electric-blue/5 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-navy-blue/5 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-lime-accent/10 rounded-full blur-[120px] pointer-events-none"></div>
 
       {/* Branding Overlay */}
@@ -1891,26 +1901,26 @@ export default function App() {
          <div className="flex flex-col md:flex-row items-center justify-center gap-5 md:gap-7 px-4">
             {/* Section 1: TIRANTE® */}
             <div className="flex items-start">
-              <span className="text-navy-blue font-black text-[38px] md:text-[59px] leading-none tracking-tight">TIRANTE</span>
-              <span className="text-navy-blue font-medium text-[16px] md:text-[23px] ml-1 mt-1 md:mt-2">®</span>
+              <span className="text-black font-black text-[38px] md:text-[48px] leading-none tracking-tight">TIRANTE</span>
+              <span className="text-black font-medium text-[16px] md:text-[20px] ml-1 mt-1 md:mt-2">®</span>
             </div>
 
             {/* Red Separator Bar */}
-            <div className="w-[3px] md:w-[4px] h-[34px] md:h-[54px] bg-primary-red mx-1 hidden md:block rounded-full"></div>
+            <div className="w-[2px] md:w-[3px] h-[34px] md:h-[42px] bg-[#EE1D23] mx-1 hidden md:block"></div>
             
             {/* Section 2: Bienes Raices. */}
             <div className="flex items-center h-full">
-              <span className="text-navy-blue font-medium text-[18px] md:text-[28px] leading-none tracking-tight opacity-70">Bienes Raices.</span>
+              <span className="text-navy-blue font-medium text-[18px] md:text-[28px] mt-1 md:mt-2 leading-none tracking-tight">Bienes Raices.</span>
             </div>
          </div>
          
          {/* Office Description */}
-         <div className="mt-8 flex flex-col items-center text-[11px] text-slate-gray font-bold uppercase tracking-[0.4em] opacity-60">
-           Pinamar • Costa Esmeralda • Cariló
+         <div className="mt-6 flex flex-col items-center text-[12px] text-navy-blue font-display font-semibold uppercase tracking-[0.2em] opacity-80">
+           Oficina Pinamar: Martillero Diego Tirante
          </div>
       </div>
 
-      <main className="w-full max-w-6xl h-auto z-10">
+      <main className="w-full max-w-6xl z-10 flex flex-col gap-8 pb-20">
         <LiquidationEngine />
       </main>
 
