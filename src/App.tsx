@@ -6,6 +6,7 @@
 import React, { useState, useMemo } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { 
   Building2, 
   Calculator, 
@@ -115,6 +116,7 @@ const LiquidationEngine = () => {
   const [showExplanation, setShowExplanation] = useState<boolean>(false);
   const [resultsView, setResultsView] = useState<'OPERACION' | 'HONORARIOS'>('OPERACION');
   const [isFacturado, setIsFacturado] = useState<boolean>(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState<boolean>(false);
   
   // Dashboard & persistence
   const [savedLiquidations, setSavedLiquidations] = useState<SavedLiquidation[]>(() => {
@@ -723,8 +725,80 @@ const LiquidationEngine = () => {
     doc.save(`Liquidacion_${context.opNumber}_${context.activeTab.toLowerCase()}.pdf`);
   };
 
+  const generateVisualPDF = async () => {
+    if (isGeneratingPDF) return;
+    setIsGeneratingPDF(true);
+    
+    const originalExplanation = showExplanation;
+    const originalScrollY = window.scrollY;
+    
+    try {
+      // 1. Scroll to top to avoid capture issues
+      window.scrollTo(0, 0);
+      
+      // 2. Expand all hidden sections
+      setShowExplanation(true);
+      
+      // 3. Wait for layout recalculation and images
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const element = document.getElementById('liquidation-container');
+      if (!element) throw new Error("Container not found");
+      
+      // 4. Capture with high quality
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#F8FAFC',
+        logging: false,
+        width: element.offsetWidth,
+        height: element.offsetHeight,
+        onclone: (clonedDoc) => {
+          const el = clonedDoc.getElementById('liquidation-container');
+          if (el) {
+             el.style.transform = 'none';
+             el.style.margin = '0';
+             el.style.padding = '40px';
+          }
+        }
+      });
+      
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 210; 
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // First page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pageHeight;
+
+      // Additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`Liquidacion_Visual_${opNumber}_${activeTab}.pdf`);
+    } catch (error) {
+      console.error("Error generating visual PDF:", error);
+      alert("Hubo un error al generar el PDF visual. Intente nuevamente.");
+    } finally {
+      // 5. Restore state
+      setShowExplanation(originalExplanation);
+      window.scrollTo(0, originalScrollY);
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-8">
+    <div id="liquidation-container" className="flex flex-col gap-8">
       <div className="modern-card p-8 md:p-12 mb-8 bg-white border border-border-light">
       {/* Header with Title */}
       <div className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -1540,7 +1614,10 @@ const LiquidationEngine = () => {
       </div>
 
       <div className="flex flex-col gap-4 mt-8">
-        <label className="flex items-center justify-between p-6 bg-slate-50/50 rounded-[32px] border border-slate-100 cursor-pointer group hover:bg-slate-50 transition-all">
+        <label 
+          data-html2canvas-ignore
+          className="flex items-center justify-between p-6 bg-slate-50/50 rounded-[32px] border border-slate-100 cursor-pointer group hover:bg-slate-50 transition-all"
+        >
           <div className="flex items-center gap-3">
             <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isFacturado ? 'bg-primary-red border-primary-red text-white' : 'border-slate-200 bg-white'}`}>
               {isFacturado && <CheckSquare className="w-4 h-4" />}
@@ -1561,6 +1638,7 @@ const LiquidationEngine = () => {
         <div className="flex justify-center w-full">
            <button 
              onClick={handleSaveLiquidation}
+             data-html2canvas-ignore
              className="group relative px-12 py-5 bg-[#D42023] hover:bg-[#B71C1E] text-white rounded-[32px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary-red/40 transition-all active:scale-95 flex items-center justify-center gap-4 overflow-hidden border-2 border-white/10"
            >
               <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
@@ -1571,10 +1649,34 @@ const LiquidationEngine = () => {
 
         <button 
           onClick={() => generatePDF()}
+          data-html2canvas-ignore
           className="w-full flex items-center justify-center gap-3 py-5 text-[11px] font-bold uppercase tracking-widest text-brand-blue border-2 border-brand-blue/10 rounded-[32px] hover:bg-brand-blue/5 transition-all"
         >
           <Download className="w-5 h-5" />
           Descargar Informe PDF Técnico
+        </button>
+
+        <button 
+          onClick={generateVisualPDF}
+          disabled={isGeneratingPDF}
+          data-html2canvas-ignore
+          className={`w-full flex items-center justify-center gap-3 py-5 text-[11px] font-bold uppercase tracking-widest rounded-[32px] transition-all active:scale-95 border-2 ${
+            isGeneratingPDF 
+            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-wait' 
+            : 'text-brand-blue border-brand-blue/10 hover:bg-brand-blue/5 shadow-lg shadow-brand-blue/5'
+          }`}
+        >
+          {isGeneratingPDF ? (
+            <>
+              <RotateCcw className="w-5 h-5 animate-spin" />
+              Generando PDF...
+            </>
+          ) : (
+            <>
+              <FileText className="w-5 h-5" />
+              Descargar PDF (Vista Web Completa)
+            </>
+          )}
         </button>
       </div>
 
