@@ -6,25 +6,18 @@
 import React, { useState, useMemo } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import html2canvas from 'html2canvas';
 import { 
   Building2, 
   Calculator, 
   Users, 
   MapPin, 
-  Phone, 
   ClipboardList,
-  Save,
   CheckSquare,
-  History,
-  TrendingDown,
   LayoutDashboard,
   Wallet,
-  ArrowDownCircle,
   TrendingUp,
+  TrendingDown,
   ChevronDown,
-  ChevronUp,
-  Trash2,
   Target,
   RotateCcw,
   Database,
@@ -34,7 +27,14 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 
 // --- Types ---
-type CaptationSource = 'PROPIA' | 'OFICINA';
+type AgentLevel = 'JUNIOR' | 'SEMI_SENIOR' | 'SENIOR' | 'PROPIA' | 'OFICINA';
+
+type SeasonalPeriod = '2DA_DIC' | '1RA_ENE' | '2DA_ENE' | '1RA_FEB' | '2DA_FEB';
+
+interface PeriodData {
+  amount: number;
+  cleaning: number;
+}
 
 interface SavedLiquidation {
   id: string;
@@ -56,29 +56,46 @@ interface SavedLiquidation {
   snapshot: any; // All calculation inputs to regenerate PDF
 }
 
-interface Withdrawal {
-  id: string;
-  boxId: string;
-  amountUSD: number;
-  date: string;
-  recipient: string;
-  performedBy: string;
-}
-
 // --- Components ---
+
+const PROPERTIES = [
+  'DT| PH-342 (Bunge)',
+  'DT| CS-102 (Alamos)',
+  'DT| DP-88 (Libertad)',
+  'DT| CS-505 (Norte)',
+  'DT| PH-120 (Centro)',
+];
+
+const PERIOD_LABELS: Record<SeasonalPeriod, string> = {
+  '2DA_DIC': '2da Dic',
+  '1RA_ENE': '1ra Ene',
+  '2DA_ENE': '2da Ene',
+  '1RA_FEB': '1ra Feb',
+  '2DA_FEB': '2da Feb',
+};
 
 const LiquidationEngine = () => {
   const [activeTab, setActiveTab] = useState<'VENTA' | 'ALQUILER'>('ALQUILER');
   const [opAmount, setOpAmount] = useState<number>(0);
-  const [source, setSource] = useState<CaptationSource>('PROPIA');
+  const [source, setSource] = useState<AgentLevel>('SEMI_SENIOR');
   
   // Office Only Mode
   const [isOfficeOnly, setIsOfficeOnly] = useState<boolean>(false);
   
   // PDF & Data Fields
   const [agentName, setAgentName] = useState<string>('Oficina Central');
-  const [opNumber, setOpNumber] = useState<string>('OP-0001');
-  const [propertyCode, setPropertyCode] = useState<string>('DT| ');
+  const [opNumber, setOpNumber] = useState<string>('S.O.T 0001');
+  const [propertyCode, setPropertyCode] = useState<string>('');
+  
+  // Seasonal Rentals State
+  const [activePeriod, setActivePeriod] = useState<SeasonalPeriod | null>(null);
+  const [seasonalData, setSeasonalData] = useState<Record<SeasonalPeriod, PeriodData>>({
+    '2DA_DIC': { amount: 0, cleaning: 0 },
+    '1RA_ENE': { amount: 0, cleaning: 0 },
+    '2DA_ENE': { amount: 0, cleaning: 0 },
+    '1RA_FEB': { amount: 0, cleaning: 0 },
+    '2DA_FEB': { amount: 0, cleaning: 0 },
+  });
   
   // Currency Conversion
   const [isPesos, setIsPesos] = useState<boolean>(false);
@@ -115,7 +132,6 @@ const LiquidationEngine = () => {
 
   const [showExplanation, setShowExplanation] = useState<boolean>(false);
   const [resultsView, setResultsView] = useState<'OPERACION' | 'HONORARIOS'>('OPERACION');
-  const [isFacturado, setIsFacturado] = useState<boolean>(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState<boolean>(false);
   
   // Dashboard & persistence
@@ -128,28 +144,11 @@ const LiquidationEngine = () => {
       return [];
     }
   });
-  
-  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>(() => {
-    try {
-      const saved = localStorage.getItem('tirante_withdrawals');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Error loading withdrawals", e);
-      return [];
-    }
-  });
-
-  const [showDashboard, setShowDashboard] = useState<boolean>(false);
-  const [activeBox, setActiveBox] = useState<string | null>(null);
 
   // Auto-save to localStorage
   React.useEffect(() => {
     localStorage.setItem('tirante_liquidations', JSON.stringify(savedLiquidations));
   }, [savedLiquidations]);
-
-  React.useEffect(() => {
-    localStorage.setItem('tirante_withdrawals', JSON.stringify(withdrawals));
-  }, [withdrawals]);
 
   const handleSaveLiquidation = () => {
     const id = (typeof crypto !== 'undefined' && crypto.randomUUID) 
@@ -164,15 +163,12 @@ const LiquidationEngine = () => {
         agent2Val = results.agent2;
         agent2Nm = coAgentName;
       } else if (isCompartida && coAgencyName) {
-        // En ventas compartidas con externas, si el usuario quiere trackearlo en caja
-        // Cargamos el monto cedido como deuda de agente a liquidar
         agent2Val = results.externalShareAmount || 0;
         agent2Nm = coAgencyName;
       }
     } else {
-      // Alquiler
       if (coAgentName) {
-        agent2Val = results.agent2 || 0; // Necesitamos asegurar que results tenga agent2 en alquiler si aplica
+        agent2Val = results.agent2 || 0;
         agent2Nm = coAgentName;
       }
     }
@@ -193,14 +189,15 @@ const LiquidationEngine = () => {
       gerenteUSD: results.gerente,
       cajaOficinaUSD: results.cajaOficina,
       cleaningUSD: activeTab === 'ALQUILER' ? cleaningGastos : 0,
-      invoiced: isFacturado,
+      invoiced: false,
       snapshot: {
-        activeTab, opAmount, opNumber, propertyCode, agentName, results, isPesos, exchangeRate,
+        activeTab, opAmount, opNumber, propertyCode, agentName, results, isPesos, exchangeRate, source,
         cleaningGastos, valorDeclarar, reservaMonto, reservaFecha, commCompradorPct,
         commVendedorPct, notaryFeePct, saleMode, escrituraPct, itiPct, isTracto,
         tasaTractoPct, certificadosMonto, inscripcionMonto, hasDeudas, deudasMonto,
         isCompartida, coAgencyName, coAgentName, shareBuyer, shareSeller,
-        isOfficeOnly, date: new Date().toLocaleDateString()
+        isOfficeOnly, date: new Date().toLocaleDateString(),
+        seasonalData // Pass the full season data
       }
     };
 
@@ -210,8 +207,8 @@ const LiquidationEngine = () => {
     const match = opNumber.match(/(\d+)/);
     if (match) {
       const num = parseInt(match[0]);
-      const newNum = (num + 1).toString().padStart(match[0].length, '0');
-      setOpNumber(opNumber.replace(match[0], newNum));
+      const newNum = (num + 1).toString().padStart(4, '0');
+      setOpNumber(`S.O.T ${newNum}`);
     }
     
     setOpAmount(0);
@@ -222,92 +219,38 @@ const LiquidationEngine = () => {
     setDeudasMonto(0);
     setHasDeudas(false);
     setIsCompartida(false);
-    setIsFacturado(false);
     setCoAgencyName('');
     setCoAgentName('');
     setShareBuyer(false);
     setShareSeller(false);
-    setPropertyCode('DT| ');
+    setPropertyCode('');
+    setActivePeriod(null);
+    setSeasonalData({
+      '2DA_DIC': { amount: 0, cleaning: 0 },
+      '1RA_ENE': { amount: 0, cleaning: 0 },
+      '2DA_ENE': { amount: 0, cleaning: 0 },
+      '1RA_FEB': { amount: 0, cleaning: 0 },
+      '2DA_FEB': { amount: 0, cleaning: 0 },
+    });
 
-    alert('Liquidación guardada y valores reseteados.');
+    alert('S.O.T Guardado exitosamente.');
   };
 
   const deleteLiquidation = (id: string) => {
     if (!id) return;
-    const confirmDelete = window.confirm('¿Está seguro de eliminar esta operación? Esto afectará todos los saldos de las cajas de forma permanente.');
-    if (confirmDelete) {
-      setSavedLiquidations(prev => {
-        const newState = prev.filter(l => l.id !== id);
-        // Force sync with localStorage just in case to ensure persistence
-        localStorage.setItem('tirante_liquidations', JSON.stringify(newState));
-        return newState;
-      });
+    if (window.confirm('¿Eliminar este registro?')) {
+      setSavedLiquidations(prev => prev.filter(l => l.id !== id));
     }
   };
 
   const resetSystem = () => {
-    if (window.confirm('⚠️ ATENCIÓN: Esta acción ELIMINARÁ TODOS los registros, retiros e historial de forma PERMANENTE como si la oficina recién empezara. ¿Desea continuar?')) {
-      setSavedLiquidations([]);
-      setWithdrawals([]);
-      localStorage.removeItem('tirante_liquidations');
-      localStorage.removeItem('tirante_withdrawals');
-      
-      // Reset current form
-      setOpNumber('OP-0001');
+    if (window.confirm('¿Reiniciar simulador?')) {
+      setOpNumber('S.O.T 0001');
       setOpAmount(0);
       setValorDeclarar(0);
-      setPropertyCode('DT| ');
+      setPropertyCode('');
       setCleaningGastos(0);
-      setAgentName('Oficina Central');
-      
-      alert('Sistema reiniciado. Todos los valores están en cero.');
     }
-  };
-
-  const handleWithdrawal = (boxId: string) => {
-    const amount = prompt(`REGISTRO DE RETIRO - ${boxId}\n\nIngrese el VALOR (USD):`);
-    if (!amount || isNaN(Number(amount))) return;
-
-    const recipient = prompt("A QUIEN SE LE PAGA:");
-    if (!recipient) return;
-
-    const performedBy = prompt("QUIEN REALIZA EL PAGO:", agentName);
-    if (!performedBy) return;
-
-    const newWithdrawal: Withdrawal = {
-      id: `RET-${Date.now().toString().slice(-6)}`,
-      boxId,
-      amountUSD: Number(amount),
-      date: new Date().toISOString(),
-      recipient,
-      performedBy
-    };
-
-    setWithdrawals(prev => [...prev, newWithdrawal]);
-    alert(`Retiro Registrado:\nID: ${newWithdrawal.id}\nValor: ${formatCurrency(newWithdrawal.amountUSD)}\nDestino: ${recipient}`);
-  };
-
-  const getBoxTotal = (boxId: string) => {
-    let total = 0;
-    savedLiquidations.forEach(l => {
-      // Robust sum including legacy field handling
-      if (boxId === 'Agente') {
-        const a1 = (l as any).agent1CommissionUSD || (l as any).agentCommissionUSD || 0;
-        const a2 = l.agent2CommissionUSD || 0;
-        total += (a1 + a2);
-      }
-      if (boxId === 'Oficina') total += (l.officeNetUSD || 0);
-      if (boxId === 'Socio') total += (l.socioUSD || 0);
-      if (boxId === 'Gerente') total += (l.gerenteUSD || 0);
-      if (boxId === 'Caja Total') total += (l.cajaOficinaUSD || 0);
-      if (boxId === 'Limpieza') total += (l.cleaningUSD || 0);
-    });
-
-    const withdrawn = withdrawals
-      .filter(w => w.boxId === boxId)
-      .reduce((sum, w) => sum + (w.amountUSD || 0), 0);
-
-    return total - withdrawn;
   };
 
   const formatCurrency = (val: number) => {
@@ -321,36 +264,57 @@ const LiquidationEngine = () => {
     }).format(amount);
   };
 
-  const results = useMemo(() => {
+  const handlePeriodToggle = (period: SeasonalPeriod) => {
+    if (activePeriod === period) {
+      setActivePeriod(null);
+    } else {
+      setActivePeriod(period);
+      // Sync values back to main inputs
+      setOpAmount(seasonalData[period].amount);
+      setCleaningGastos(seasonalData[period].cleaning);
+    }
+  };
+
+  // Sync state changes to seasonal data if a period is selected
+  React.useEffect(() => {
+    if (activePeriod && activeTab === 'ALQUILER') {
+      setSeasonalData(prev => ({
+        ...prev,
+        [activePeriod]: { amount: opAmount, cleaning: cleaningGastos }
+      }));
+    }
+  }, [opAmount, cleaningGastos, activePeriod, activeTab]);
+
+  const calculateResults = (amount: number, cleaning: number) => {
     if (activeTab === 'ALQUILER') {
-      // Logic from user: inquilino pays opAmount (inclusive)
-      // opAmount - Cleaning = RentBase (Vd) + 10% Inq
-      // opAmount - Cleaning = 1.1 * RentBase
-      // RentBase (Vd) = (opAmount - Cleaning) / 1.1
-      const rentBase = (opAmount - cleaningGastos) / 1.1;
+      const rentBase = (amount - cleaning) / 1.1;
       const commInquilino = rentBase * 0.10;
       const commPropietario = rentBase * 0.10;
-      const subTotalLiquidacion = rentBase; // This is the "Valor Declarado"
+      const subTotalLiquidacion = rentBase;
       const totalAgency = commInquilino + commPropietario;
-      const propietarioRecibe = rentBase * 0.90; // RentBase - 10% Prop
+      const propietarioRecibe = rentBase * 0.90;
 
       if (isOfficeOnly) {
         const socio = totalAgency * 0.25;
         const gerente = totalAgency * 0.25;
         const cajaOficina = totalAgency * 0.50;
         const gastosOficina = cajaOficina * 0.75;
+        const officeNet = totalAgency;
 
         return { 
-          type: 'ALQUILER',
+          type: 'ALQUILER' as const,
           commInquilino, subTotalLiquidacion, commPropietario, totalAgency, propietarioRecibe,
-          agent: 0, martillero: 0, captador: 0, officeNet: totalAgency, socio, gerente, cajaOficina, gastosOficina,
-          agentPct: 0, officePct: 1, isOfficeOnly: true
+          agent: 0, agent2: 0, martillero: 0, captador: 0, officeNet, socio, gerente, cajaOficina, gastosOficina,
+          agentPct: 0, officePct: 1, isOfficeOnly: true, cleaning
         };
       }
 
-      const agentPct = source === 'PROPIA' ? 0.30 : 0.25;
-      const officePct = source === 'PROPIA' ? 0.70 : 0.75; // Increased by 7% (5% Martillero + 2% Captador removed)
-      
+      let agentPct = 0.25;
+      if (source === 'SENIOR') agentPct = 0.35;
+      else if (source === 'SEMI_SENIOR' || source === 'PROPIA') agentPct = 0.30;
+      else agentPct = 0.25;
+
+      const officePct = 1 - agentPct;
       const totalAgentComm = totalAgency * agentPct;
       let agent1 = totalAgentComm;
       let agent2 = 0;
@@ -361,7 +325,6 @@ const LiquidationEngine = () => {
       }
 
       const officeNet = totalAgency * officePct;
-
       const socio = officeNet * 0.25;
       const gerente = officeNet * 0.25;
       const cajaOficina = officeNet * 0.50;
@@ -369,37 +332,25 @@ const LiquidationEngine = () => {
       const inversionOficina = cajaOficina * 0.25;
 
       return { 
-        type: 'ALQUILER',
+        type: 'ALQUILER' as const,
         commInquilino, subTotalLiquidacion, commPropietario, totalAgency, propietarioRecibe,
         agent: agent1, agent2, martillero: 0, captador: 0, officeNet, socio, gerente, cajaOficina, gastosOficina, inversionOficina,
-        agentPct, officePct, isOfficeOnly: false
+        agentPct, officePct, isOfficeOnly: false, cleaning
       };
     } else {
-      let rawCommVendedor = opAmount * (commVendedorPct / 100);
-      let rawCommComprador = opAmount * (commCompradorPct / 100);
-
+      let rawCommVendedor = amount * (commVendedorPct / 100);
+      let rawCommComprador = amount * (commCompradorPct / 100);
       const isInternalShare = coAgencyName === 'AGENTE OFICINA';
       
-      // Share Logic: 
-      // If external share (NOT Agente Oficina), agency keeps 0% of that "side" (cede 100%)
-      // If internal share (Agente Oficina), agency keeps 100% (cede 0%) but we split agent comm later
       let commVendedorAgencia = rawCommVendedor;
-      if (shareSeller && !isInternalShare) {
-        commVendedorAgencia = 0;
-      }
+      if (shareSeller && !isInternalShare) commVendedorAgencia = 0;
 
       let commCompradorAgencia = rawCommComprador;
-      if (shareBuyer && !isInternalShare) {
-        commCompradorAgencia = 0;
-      }
+      if (shareBuyer && !isInternalShare) commCompradorAgencia = 0;
 
-      // Logic: If internal share, the agent who "brings" that side keeps the commission %
-      // Agent 1 keeps sides not shared. Agent 2 gets sides shared internally.
-      
       const totalAgency = commCompradorAgencia + commVendedorAgencia;
       
-      // --- Notary/Escritura Engineering (Calculated on valorDeclarar) ---
-      const baseCalc = valorDeclarar > 0 ? valorDeclarar : opAmount;
+      const baseCalc = valorDeclarar > 0 ? valorDeclarar : amount;
       const sellosTotal = baseCalc * (escrituraPct / 100);
       const sellosVendedor = sellosTotal / 2;
       const sellosComprador = sellosTotal / 2;
@@ -407,7 +358,7 @@ const LiquidationEngine = () => {
       const iti = baseCalc * (itiPct / 100);
       const honorariosEscribano = baseCalc * (notaryFeePct / 100);
       const tasaTracto = isTracto ? baseCalc * (tasaTractoPct / 100) : 0;
-      const sucesionJudicial = isTracto ? baseCalc * 0.04 : 0; // 3-5% additional estimate
+      const sucesionJudicial = isTracto ? baseCalc * 0.04 : 0;
       
       const sellerClosingExpenses = iti + certificadosMonto + sucesionJudicial + tasaTracto + parcelario + (hasDeudas ? deudasMonto : 0);
       const buyerClosingExpenses = honorariosEscribano + inscripcionMonto;
@@ -415,8 +366,8 @@ const LiquidationEngine = () => {
       const totalGastosVendedor = saleMode === 'LIBRE' ? 0 : (sellosVendedor + sellerClosingExpenses);
       const totalGastosComprador = saleMode === 'LIBRE' ? (sellosTotal + buyerClosingExpenses + sellerClosingExpenses) : (sellosComprador + buyerClosingExpenses);
       
-      const totalOperacion = opAmount + rawCommComprador + totalGastosComprador - reservaMonto;
-      const vendedorRecibe = opAmount - rawCommVendedor - totalGastosVendedor;
+      const totalOperacion = amount + rawCommComprador + totalGastosComprador - reservaMonto;
+      const vendedorRecibe = amount - rawCommVendedor - totalGastosVendedor;
 
       if (isOfficeOnly) {
         const socio = totalAgency * 0.25;
@@ -424,75 +375,104 @@ const LiquidationEngine = () => {
         const cajaOficina = totalAgency * 0.50;
 
         return { 
-          type: 'VENTA',
-          commComprador: rawCommComprador, 
-          commVendedor: rawCommVendedor,
+          type: 'VENTA' as const,
+          commComprador: rawCommComprador, commVendedor: rawCommVendedor,
           totalAgency, totalOperacion, vendedorRecibe, 
           iti, certificadosMonto, sucesionJudicial, sellosVendedor, sellosComprador, 
-          honorariosEscribano, inscripcionMonto, totalGastosVendedor, totalGastosComprador,
-          tasaTracto, parcelario, deudasMonto, reservaMonto, reservaFecha,
-          agent: 0, martillero: 0, captador: 0, officeNet: totalAgency, socio, gerente, cajaOficina,
-          agentPct: 0, officePct: 1, isOfficeOnly: true
+          honorariosEscribano, tasaTracto, inscripcionMonto, parcelario, deudasMonto,
+          agent: 0, agent2: 0, officeNet: totalAgency, socio, gerente, cajaOficina, 
+          agentPct: 0, officePct: 1, isOfficeOnly: true, externalShareAmount: 0
         };
       }
 
-      const agentPct = source === 'PROPIA' ? 0.30 : 0.25;
-      const officePct = source === 'PROPIA' ? 0.70 : 0.75; // Increased by 7% (5%+2% Martillero/Captador)
+      let agentPct = 0.25;
+      if (source === 'SENIOR') agentPct = 0.35;
+      else if (source === 'SEMI_SENIOR' || source === 'PROPIA') agentPct = 0.30;
+      else agentPct = 0.25;
       
-      // Agent Calculation adjusting for internal shares
-      let agent1Share = 0;
-      let agent2Share = 0;
+      const officePct = 1 - agentPct;
+      let agent1 = totalAgency * agentPct;
+      let agent2Value = 0;
 
-      // Logic: If internal share, the agent who "brings" that side keeps the commission %
-      // Agent 1 keeps sides not shared. Agent 2 gets sides shared internally.
-      
-      let commPoolComprador = commCompradorAgencia * agentPct;
-      if (shareBuyer && isInternalShare) {
-        agent2Share += commPoolComprador;
-      } else if (!shareBuyer) {
-        agent1Share += commPoolComprador;
+      if (isInternalShare) {
+        agent1 = (totalAgency * agentPct) / 2;
+        agent2Value = (totalAgency * agentPct) / 2;
+      } else if (isCompartida && coAgencyName) {
+        agent1 = totalAgency * agentPct;
       }
 
-      let commPoolVendedor = commVendedorAgencia * agentPct;
-      if (shareSeller && isInternalShare) {
-        agent2Share += commPoolVendedor;
-      } else if (!shareSeller) {
-        agent1Share += commPoolVendedor;
-      }
-
-      const agent = agent1Share;
       const officeNet = totalAgency * officePct;
-
       const socio = officeNet * 0.25;
       const gerente = officeNet * 0.25;
       const cajaOficina = officeNet * 0.50;
 
-      // External share value (what we ceded)
       let externalShareAmount = 0;
       if (shareBuyer && !isInternalShare) externalShareAmount += rawCommComprador;
       if (shareSeller && !isInternalShare) externalShareAmount += rawCommVendedor;
 
       return { 
-        type: 'VENTA',
-        commComprador: rawCommComprador,
-        commVendedor: rawCommVendedor, 
+        type: 'VENTA' as const,
+        commComprador: rawCommComprador, commVendedor: rawCommVendedor,
         totalAgency, totalOperacion, vendedorRecibe, 
         iti, certificadosMonto, sucesionJudicial, sellosVendedor, sellosComprador, 
-        honorariosEscribano, inscripcionMonto, totalGastosVendedor, totalGastosComprador,
-        tasaTracto, parcelario, deudasMonto, reservaMonto, reservaFecha,
-        agent, agent2: agent2Share, martillero: 0, captador: 0, externalShareAmount,
-        officeNet, socio, gerente, cajaOficina,
-        agentPct, officePct, isOfficeOnly: false
+        honorariosEscribano, tasaTracto, inscripcionMonto, parcelario, deudasMonto,
+        agent: agent1, agent2: agent2Value, martillero: 0, captador: 0, officeNet, socio, gerente, cajaOficina,
+        agentPct, officePct, isOfficeOnly: false, externalShareAmount
       };
     }
-  }, [activeTab, opAmount, source, cleaningGastos, saleMode, commVendedorPct, commCompradorPct, escrituraPct, parcelario, inhibicion, isTracto, notaryFeePct, itiPct, certificadosMonto, inscripcionMonto, isOfficeOnly, shareBuyer, shareSeller, valorDeclarar, deudasMonto, hasDeudas, tasaTractoPct, coAgencyName, reservaMonto, reservaFecha]);
+  };
+
+  const results = useMemo(() => calculateResults(opAmount, cleaningGastos), 
+  [activeTab, opAmount, source, cleaningGastos, saleMode, commVendedorPct, commCompradorPct, escrituraPct, parcelario, inhibicion, isTracto, notaryFeePct, itiPct, certificadosMonto, inscripcionMonto, isOfficeOnly, shareBuyer, shareSeller, valorDeclarar, deudasMonto, hasDeudas, tasaTractoPct, coAgencyName, coAgentName, reservaMonto, reservaFecha]);
+
+  const seasonalTotals = useMemo(() => {
+    if (activeTab !== 'ALQUILER') return null;
+
+    const activePeriods = (Object.keys(seasonalData) as SeasonalPeriod[]).filter(p => seasonalData[p].amount > 0);
+    if (activePeriods.length < 2) return null;
+
+    const totals = {
+      amount: 0,
+      cleaning: 0,
+      subTotalLiquidacion: 0,
+      commInquilino: 0,
+      commPropietario: 0,
+      totalAgency: 0,
+      propietarioRecibe: 0,
+      agent: 0,
+      agent2: 0,
+      officeNet: 0,
+      socio: 0,
+      gerente: 0,
+      cajaOficina: 0
+    };
+
+    activePeriods.forEach(p => {
+      const res = calculateResults(seasonalData[p].amount, seasonalData[p].cleaning) as any;
+      totals.amount += seasonalData[p].amount;
+      totals.cleaning += seasonalData[p].cleaning;
+      totals.subTotalLiquidacion += (res.subTotalLiquidacion || 0);
+      totals.commInquilino += (res.commInquilino || 0);
+      totals.commPropietario += (res.commPropietario || 0);
+      totals.totalAgency += (res.totalAgency || 0);
+      totals.propietarioRecibe += (res.propietarioRecibe || 0);
+      totals.agent += (res.agent || 0);
+      totals.agent2 += (res.agent2 || 0);
+      totals.officeNet += (res.officeNet || 0);
+      totals.socio += (res.socio || 0);
+      totals.gerente += (res.gerente || 0);
+      totals.cajaOficina += (res.cajaOficina || 0);
+    });
+
+    return totals;
+  }, [seasonalData, activeTab, source, isOfficeOnly, coAgentName]);
 
   const generatePDF = (historyItem?: SavedLiquidation) => {
     const doc = new jsPDF();
     
     // Determine source data (history or current state)
     const context = historyItem ? historyItem.snapshot : {
-      activeTab, opAmount, opNumber, agentName, results, isPesos, exchangeRate,
+      activeTab, opAmount, opNumber, agentName, results, isPesos, exchangeRate, source,
       cleaningGastos, valorDeclarar, reservaMonto, reservaFecha, commCompradorPct,
       commVendedorPct, notaryFeePct, saleMode, escrituraPct, itiPct, isTracto,
       tasaTractoPct, certificadosMonto, inscripcionMonto, hasDeudas, deudasMonto,
@@ -534,10 +514,14 @@ const LiquidationEngine = () => {
       
       // Labels in Navy Blue
       p_doc.setFontSize(9);
-      p_doc.text(`LIQUIDACIÓN: ${context.opNumber}`, 150, 15);
+      p_doc.text(`S.O.T: ${context.opNumber}`, 150, 15);
       p_doc.text(`PROPIEDAD: ${context.propertyCode}`, 150, 22);
       p_doc.text(`FECHA: ${date}`, 150, 29);
       p_doc.text(`AGENTE: ${context.agentName.toUpperCase()}`, 150, 36);
+      if (!context.isOfficeOnly && context.source) {
+        p_doc.setFontSize(8);
+        p_doc.text(`NIVEL AGENTE: ${context.source.replace('_', ' ')}`, 150, 41);
+      }
     };
 
     addHeader(doc);
@@ -556,7 +540,7 @@ const LiquidationEngine = () => {
     // Body Title
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
-    doc.text(`INFORME DE LIQUIDACIÓN - ${context.activeTab === 'ALQUILER' ? 'ALQUILER TEMPORAL' : 'VENTA INMOBILIARIA'}`, 15, 55);
+    doc.text(`INFORME S.O.T. - ${context.activeTab === 'ALQUILER' ? 'ALQUILER TEMPORAL' : 'VENTA INMOBILIARIA'}`, 15, 55);
     
     // Summary Table
     const summaryData = [
@@ -673,7 +657,7 @@ const LiquidationEngine = () => {
     const finalYDist = 55;
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text('INGENIERÍA DE LA LIQUIDACIÓN (Dist. Interna)', 15, finalYDist);
+    doc.text('INGENIERÍA DEL S.O.T. (Dist. Interna)', 15, finalYDist);
 
     let distributionData: any[] = [];
     if (context.results.isOfficeOnly) {
@@ -720,81 +704,45 @@ const LiquidationEngine = () => {
 
     const finalYSign = (doc as any).lastAutoTable.finalY + 20;
     doc.setFontSize(10);
-    doc.text('Certifico que la presente liquidación responde a los protocolos internos de TIRANTE® Bienes Raices.', 15, finalYSign);
+    doc.text('Certifico que el presente S.O.T. responde a los protocolos internos de TIRANTE® Bienes Raices.', 15, finalYSign);
     
-    doc.save(`Liquidacion_${context.opNumber}_${context.activeTab.toLowerCase()}.pdf`);
-  };
+    // Additional Seasonal Tables if active
+    if (context.activeTab === 'ALQUILER') {
+      const activePeriods = (Object.keys(context.seasonalData || {}) as SeasonalPeriod[]).filter(p => (context.seasonalData[p]?.amount || 0) > 0);
+      
+      if (activePeriods.length > 0) {
+        doc.addPage();
+        addHeader(doc);
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text('RESUMEN DE TEMPORADA (DESGLOSE POR QUINCENA)', 15, 55);
 
-  const generateVisualPDF = async () => {
-    if (isGeneratingPDF) return;
-    setIsGeneratingPDF(true);
-    
-    const originalExplanation = showExplanation;
-    const originalScrollY = window.scrollY;
-    
-    try {
-      // 1. Scroll to top to avoid capture issues
-      window.scrollTo(0, 0);
-      
-      // 2. Expand all hidden sections
-      setShowExplanation(true);
-      
-      // 3. Wait for layout recalculation and images
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const element = document.getElementById('liquidation-container');
-      if (!element) throw new Error("Container not found");
-      
-      // 4. Capture with high quality
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#F8FAFC',
-        logging: false,
-        width: element.offsetWidth,
-        height: element.offsetHeight,
-        onclone: (clonedDoc) => {
-          const el = clonedDoc.getElementById('liquidation-container');
-          if (el) {
-             el.style.transform = 'none';
-             el.style.margin = '0';
-             el.style.padding = '40px';
-          }
-        }
-      });
-      
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const imgWidth = 210; 
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+        const seasonalTableData = activePeriods.map(p => {
+          const data = context.seasonalData[p];
+          const rBase = (data.amount - (data.cleaning || 0)) / 1.1;
+          const rPropRecibe = rBase * 0.90;
+          const rCommTotal = (rBase * 0.10) * 2;
+          return [
+            PERIOD_LABELS[p].toUpperCase(),
+            pdfFormat(data.amount),
+            pdfFormat(data.cleaning),
+            pdfFormat(rBase),
+            pdfFormat(rPropRecibe),
+            pdfFormat(rCommTotal)
+          ];
+        });
 
-      // First page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= pageHeight;
-
-      // Additional pages if needed
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-        heightLeft -= pageHeight;
+        autoTable(doc, {
+          startY: 65,
+          head: [['Quincena', 'Total Inq.', 'Limpieza', 'Alquiler', 'Prop. Recibe', 'Com. Oficina']],
+          body: seasonalTableData,
+          theme: 'grid',
+          headStyles: { fillColor: [10, 31, 68] }
+        });
       }
-
-      pdf.save(`Liquidacion_Visual_${opNumber}_${activeTab}.pdf`);
-    } catch (error) {
-      console.error("Error generating visual PDF:", error);
-      alert("Hubo un error al generar el PDF visual. Intente nuevamente.");
-    } finally {
-      // 5. Restore state
-      setShowExplanation(originalExplanation);
-      window.scrollTo(0, originalScrollY);
-      setIsGeneratingPDF(false);
     }
+    
+    doc.save(`S.O.T_${context.opNumber}_${context.activeTab.toLowerCase()}.pdf`);
   };
 
   return (
@@ -806,8 +754,8 @@ const LiquidationEngine = () => {
               <div className="bg-brand-blue/10 p-3 rounded-2xl w-max">
                 <Calculator className="text-brand-blue w-7 h-7" />
               </div>
-              <h1 className="text-3xl font-bold text-text-title tracking-tight mt-4">Liquidación de Operación</h1>
-            <p className="text-sm text-text-body font-medium">Protocolo Interno de Gestión de Honorarios</p>
+              <h1 className="text-3xl font-bold text-text-title tracking-tight mt-4">S.O.T. (Simulador de Operación TIRANTE®)</h1>
+            <p className="text-sm text-text-body font-medium">Simulación de Honorarios e Ingeniería Inmobiliaria</p>
          </div>
 
          <div className="flex gap-2 bg-[#EFF4FF] p-1.5 rounded-full self-start md:self-center border border-brand-blue/10">
@@ -829,16 +777,30 @@ const LiquidationEngine = () => {
       {/* Sub Header / Filters */}
       <div className="flex items-center justify-between mb-10 flex-wrap gap-6 pt-8 border-t border-border-light">
         <div className="flex-1 min-w-[280px]">
-           <label className="micro-label">Código Propiedad</label>
+           <label className="micro-label">Propiedad TIRANTE®</label>
            <div className="relative group">
              <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/60 group-focus-within:text-brand-blue transition-colors" />
-             <input 
-              type="text" 
-              className="modern-input pl-14 font-medium" 
+             <select 
+              className="modern-input pl-14 font-medium appearance-none" 
               value={propertyCode} 
               onChange={(e) => setPropertyCode(e.target.value)} 
-             />
+             >
+               <option value="">Seleccionar Propiedad...</option>
+               {PROPERTIES.map(p => (
+                 <option key={p} value={p}>{p}</option>
+               ))}
+               <option value="CUSTOM">--- Otra (Manual) ---</option>
+             </select>
+             <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
            </div>
+           {propertyCode === 'CUSTOM' && (
+             <input 
+              type="text" 
+              placeholder="Ingrese código manual..." 
+              className="modern-input mt-2 text-xs py-2 h-auto"
+              onChange={(e) => setPropertyCode(e.target.value)}
+             />
+           )}
         </div>
 
         <div className="flex items-center gap-8">
@@ -871,6 +833,36 @@ const LiquidationEngine = () => {
           </div>
         </div>
       </div>
+
+      {activeTab === 'ALQUILER' && (
+        <div className="mb-10 p-6 bg-slate-50 rounded-[32px] border border-slate-200/60">
+          <label className="micro-label mb-4 text-brand-blue">Temporada de Verano (Control de Tarifas)</label>
+          <div className="flex flex-wrap gap-3">
+            {(Object.keys(seasonalData) as SeasonalPeriod[]).map(p => (
+              <button
+                key={p}
+                onClick={() => handlePeriodToggle(p)}
+                className={`flex-1 min-w-[120px] px-4 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border-2 flex flex-col items-center gap-1 ${
+                  activePeriod === p 
+                  ? 'bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/20 scale-105 z-10' 
+                  : 'bg-white border-slate-200 text-slate-500 hover:border-brand-blue/30 hover:text-brand-blue'
+                }`}
+              >
+                <span>{PERIOD_LABELS[p]}</span>
+                <span className={`text-[9px] opacity-70 ${activePeriod === p ? 'text-white' : 'text-slate-400'}`}>
+                  {seasonalData[p].amount > 0 ? formatCurrency(seasonalData[p].amount) : 'Sin Cargar'}
+                </span>
+              </button>
+            ))}
+          </div>
+          {activePeriod && (
+            <p className="mt-4 text-[10px] text-slate-500 font-medium italic flex items-center gap-2">
+              <span className="w-2 h-2 bg-brand-blue rounded-full animate-pulse"></span>
+              Editando valores para: <span className="text-brand-blue font-bold">{PERIOD_LABELS[activePeriod]}</span>. Los cambios se guardarán automáticamente en esta quincena.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Dynamic Inputs */}
       {activeTab === 'VENTA' ? (
@@ -928,7 +920,7 @@ const LiquidationEngine = () => {
                </div>
             )}
             <div className="flex flex-col">
-              <label className="micro-label">N° Folio / OP</label>
+              <label className="micro-label">Número de S.O.T</label>
               <div className="relative group">
                 <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue transition-colors" />
                 <input type="text" className="modern-input pl-12 py-4 font-bold" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
@@ -945,6 +937,43 @@ const LiquidationEngine = () => {
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                </div>
             </div>
+            {!isOfficeOnly && (
+               <div className="flex flex-col">
+                 <label className="micro-label flex items-center gap-1 group relative cursor-help">
+                   Tipo de Agente
+                   <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-0 mb-2 w-64 p-4 bg-navy-blue text-white text-[10px] rounded-xl shadow-2xl z-50 pointer-events-none font-sans normal-case leading-relaxed border border-white/10">
+                     <p className="font-bold border-b border-white/20 pb-2 mb-2 text-brand-blue uppercase tracking-widest text-[9px]">Sistema de Comisiones (Operaciones &gt; USD 40.000)</p>
+                     <div className="grid grid-cols-2 gap-y-1">
+                       <span className="opacity-60 uppercase text-[8px] font-black">Nivel</span>
+                       <span className="text-right opacity-60 uppercase text-[8px] font-black">Comisión</span>
+                       
+                       <span className="font-bold">Junior (1a a 5a)</span>
+                       <span className="text-right font-black text-brand-blue">25%</span>
+                       
+                       <span className="font-bold">Semi-Senior (6a a 10a)</span>
+                       <span className="text-right font-black text-brand-blue">30%</span>
+                       
+                       <span className="font-bold">Senior (11a +)</span>
+                       <span className="text-right font-black text-brand-blue">35%</span>
+                     </div>
+                     <p className="mt-2 text-[8px] opacity-40 italic">Relación comisión Agente vs Retención Oficina.</p>
+                   </div>
+                 </label>
+                 <div className="relative group">
+                    <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue transition-colors" />
+                    <select 
+                      className="modern-input pl-12 py-4 appearance-none cursor-pointer"
+                      value={source}
+                      onChange={(e) => setSource(e.target.value as AgentLevel)}
+                    >
+                      <option value="JUNIOR">Junior (25%)</option>
+                      <option value="SEMI_SENIOR">Semi-Senior (30%)</option>
+                      <option value="SENIOR">Senior (35%)</option>
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                 </div>
+               </div>
+            )}
           </div>
         </div>
       ) : (
@@ -989,7 +1018,7 @@ const LiquidationEngine = () => {
           )}
 
           <div className="flex flex-col">
-            <label className="micro-label">N° Folio / OP</label>
+            <label className="micro-label">Número de S.O.T</label>
             <input type="text" className="modern-input font-bold" value={opNumber} onChange={(e) => setOpNumber(e.target.value)} />
           </div>
 
@@ -1000,16 +1029,36 @@ const LiquidationEngine = () => {
           
           {!isOfficeOnly && (
             <div className="flex flex-col">
-              <label className="micro-label">Origen de Captación</label>
+              <label className="micro-label flex items-center gap-1 group relative cursor-help">
+                Tipo de Agente
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-0 mb-2 w-64 p-4 bg-navy-blue text-white text-[10px] rounded-xl shadow-2xl z-50 pointer-events-none font-sans normal-case leading-relaxed border border-white/10">
+                  <p className="font-bold border-b border-white/20 pb-2 mb-2 text-brand-blue uppercase tracking-widest text-[9px]">Sistema de Comisiones (Operaciones &gt; USD 40.000)</p>
+                  <div className="grid grid-cols-2 gap-y-1">
+                    <span className="opacity-60 uppercase text-[8px] font-black">Nivel</span>
+                    <span className="text-right opacity-60 uppercase text-[8px] font-black">Comisión</span>
+                    
+                    <span className="font-bold">Junior (1a a 5a)</span>
+                    <span className="text-right font-black text-brand-blue">25%</span>
+                    
+                    <span className="font-bold">Semi-Senior (6a a 10a)</span>
+                    <span className="text-right font-black text-brand-blue">30%</span>
+                    
+                    <span className="font-bold">Senior (11a +)</span>
+                    <span className="text-right font-black text-brand-blue">35%</span>
+                  </div>
+                  <p className="mt-2 text-[8px] opacity-40 italic">Relación comisión Agente vs Retención Oficina.</p>
+                </div>
+              </label>
               <div className="relative group">
                 <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-blue/30 group-focus-within:text-brand-blue transition-colors" />
                 <select 
                   className="modern-input pl-12 py-4 appearance-none cursor-pointer"
                   value={source}
-                  onChange={(e) => setSource(e.target.value as CaptationSource)}
+                  onChange={(e) => setSource(e.target.value as AgentLevel)}
                 >
-                  <option value="PROPIA">Propia (30%)</option>
-                  <option value="OFICINA">Oficina (25%)</option>
+                  <option value="JUNIOR">Junior (25%)</option>
+                  <option value="SEMI_SENIOR">Semi-Senior (30%)</option>
+                  <option value="SENIOR">Senior (35%)</option>
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
@@ -1190,7 +1239,7 @@ const LiquidationEngine = () => {
         <div className="h-[1px] flex-1 bg-border-light"></div>
         <button 
           onClick={() => setShowExplanation(!showExplanation)}
-          className={`group flex items-center justify-center gap-3 px-8 py-4 rounded-full border-2 transition-all duration-300 relative font-black text-xs uppercase tracking-widest ${showExplanation ? 'bg-primary-red text-white border-primary-red shadow-xl shadow-primary-red/20' : 'bg-white text-navy-blue border-navy-blue border-opacity-10 hover:border-opacity-30 shadow-lg shadow-navy-blue/5'}`}
+          className={`group flex items-center justify-center gap-3 px-8 py-4 rounded-full border-2 transition-all duration-300 relative font-black text-xs uppercase tracking-widest ${showExplanation ? 'bg-primary-red text-white border-primary-red shadow-xl shadow-primary-red/20' : 'bg-white text-navy-blue border-navy-blue border-opacity-30 hover:border-opacity-60 shadow-lg shadow-navy-blue/5'}`}
         >
           <Calculator className={`w-5 h-5 transition-transform duration-500 ${showExplanation ? 'rotate-12 scale-110' : ''}`} />
           {showExplanation ? 'Ocultar Desglose Técnico' : 'Ver Desglose de Ingeniería'}
@@ -1359,8 +1408,20 @@ const LiquidationEngine = () => {
                         </div>
 
                         <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between text-xs font-bold">
-                          <span className="text-dark-blue uppercase tracking-tighter">Total Costo Cliente:</span>
+                          <span className="text-dark-blue uppercase tracking-tighter">SUB TOTAL (a entregar en escribanía):</span>
                           <span className="text-blue-600">{formatCurrency(results.type === 'VENTA' ? results.totalOperacion : 0)}</span>
+                        </div>
+
+                        {/* NEW: Verdadero Total for Buyer */}
+                        <div className="mt-4 p-4 bg-navy-blue rounded-2xl text-white shadow-lg space-y-1 relative overflow-hidden group">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
+                          <div className="flex justify-between items-center relative z-10">
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Verdadero Total Comprador</span>
+                              <span className="text-[8px] opacity-40 uppercase tracking-tighter">Inmueble + Honorarios + Gastos</span>
+                            </div>
+                            <span className="text-xl font-black">{formatCurrency(results.type === 'VENTA' ? results.totalOperacion + (results.reservaMonto || 0) : 0)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1497,13 +1558,13 @@ const LiquidationEngine = () => {
         <div className="flex bg-bg-input/50 p-2 rounded-t-[36px] gap-2">
             <button 
               onClick={() => setResultsView('OPERACION')}
-              className={`flex-1 py-4 rounded-[32px] text-xs font-black uppercase tracking-widest transition-all ${resultsView === 'OPERACION' ? 'bg-white text-navy-blue shadow-lg border border-border-light' : 'text-text-label hover:bg-white/50'}`}
+              className={`flex-1 py-4 rounded-[32px] text-xs font-black uppercase tracking-widest transition-all ${resultsView === 'OPERACION' ? 'bg-white text-navy-blue shadow-lg border border-border-light opacity-100' : 'text-text-label hover:bg-white/50 opacity-60'}`}
             >
               Vista Operación (Cliente)
             </button>
             <button 
               onClick={() => setResultsView('HONORARIOS')}
-              className={`flex-1 py-4 rounded-[32px] text-xs font-black uppercase tracking-widest transition-all ${resultsView === 'HONORARIOS' ? 'bg-primary-red text-white shadow-xl shadow-primary-red/20' : 'text-text-label hover:bg-white/50'}`}
+              className={`flex-1 py-4 rounded-[32px] text-xs font-black uppercase tracking-widest transition-all ${resultsView === 'HONORARIOS' ? 'bg-primary-red text-white shadow-xl shadow-primary-red/20 opacity-100' : 'text-text-label hover:bg-white/50 opacity-60'}`}
             >
               Vista Honorarios (Interna)
             </button>
@@ -1522,7 +1583,7 @@ const LiquidationEngine = () => {
                 <div className="text-center">
                    <span className="micro-label mb-4 opacity-100 text-brand-blue font-bold tracking-[0.2em]">{results.type === 'ALQUILER' ? 'Beneficio Propietario' : 'Neto p/Vendedor'}</span>
                    <h2 className="text-6xl md:text-8xl font-black text-text-title tracking-tighter leading-none mb-6">
-                     {formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : results.vendedorRecibe)}
+                     {formatCurrency(results.type === 'ALQUILER' ? results.propietarioRecibe : (results as any).vendedorRecibe)}
                    </h2>
                    <div className="flex justify-center">
                       <div className="px-6 py-2 bg-green-100 text-[#15803D] rounded-full text-[10px] font-black uppercase tracking-widest">Saldo Final Liquidado</div>
@@ -1536,22 +1597,50 @@ const LiquidationEngine = () => {
                            <TrendingUp className="w-6 h-6 text-brand-blue" />
                         </div>
                         <span className="text-[11px] uppercase text-navy-blue font-bold tracking-widest">
-                          {results.type === 'ALQUILER' ? 'Precio de Lista' : 'Inversión Comprador'}
+                          {results.type === 'ALQUILER' ? 'Precio de Lista' : 'Saldo a presentarse en la escribanía'}
                         </span>
                       </div>
-                      <span className="text-4xl md:text-5xl font-bold text-text-title tracking-tight">{formatCurrency(results.type === 'ALQUILER' ? opAmount : results.totalOperacion)}</span>
+                      <span className="text-4xl md:text-5xl font-bold text-text-title tracking-tight">{formatCurrency(results.type === 'ALQUILER' ? opAmount : (results as any).totalOperacion)}</span>
                     </div>
                     
                     <div className="p-10 bg-white rounded-[32px] border-2 border-brand-blue/10 shadow-sm">
-                      <div className="flex items-center gap-3 mb-6">
+                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 rounded-full bg-primary-red/10 flex items-center justify-center">
                            <Target className="w-6 h-6 text-primary-red" />
                         </div>
                         <span className="text-[11px] uppercase text-primary-red font-bold tracking-widest">Comisión Agencia</span>
-                      </div>
-                      <span className="text-4xl md:text-5xl font-bold text-primary-red tracking-tight">{formatCurrency(results.totalAgency)}</span>
+                       </div>
+                       <span className="text-4xl md:text-5xl font-bold text-primary-red tracking-tight">{formatCurrency(results.totalAgency)}</span>
                     </div>
                 </div>
+
+                {/* SEASONAL TOTALS SUMMARY (OPERACION) */}
+                {seasonalTotals && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-10 bg-navy-blue rounded-[32px] text-white shadow-2xl relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+                    <div className="relative z-10">
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-6 block">Gran Total Temporada (Varias Quincenas)</span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                        <div>
+                          <span className="block text-[10px] uppercase opacity-60 mb-2">Total Recibe Propietario</span>
+                          <span className="text-4xl font-black">{formatCurrency(seasonalTotals.propietarioRecibe)}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase opacity-60 mb-2">Total Pack (V. Público)</span>
+                          <span className="text-4xl font-black">{formatCurrency(seasonalTotals.amount)}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase opacity-60 mb-2">Total Honorarios</span>
+                          <span className="text-4xl font-black text-brand-blue">{formatCurrency(seasonalTotals.totalAgency)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </motion.div>
             ) : (
               <motion.div 
@@ -1568,7 +1657,14 @@ const LiquidationEngine = () => {
                      </h2>
                      <div className="flex justify-center gap-4">
                         <span className="bg-navy-blue text-white text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-md">Protocolo TIRANTE®</span>
-                        <span className="bg-brand-blue/10 text-brand-blue text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">100% Gestión Inmobiliaria</span>
+                        {!isOfficeOnly && (
+                          <span className="bg-white border-2 border-brand-blue text-brand-blue text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">
+                            {source.replace('_', ' ')} ({(results.agentPct! * 100).toFixed(0)}%)
+                          </span>
+                        )}
+                        <span className="bg-brand-blue/10 text-brand-blue text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">
+                          {isCompartida ? '50% Gestión Inmobiliaria' : '100% Gestión Inmobiliaria'}
+                        </span>
                      </div>
                   </div>
 
@@ -1577,15 +1673,44 @@ const LiquidationEngine = () => {
                         <span className="text-[10px] font-bold text-text-label uppercase tracking-widest block mb-1">Agente</span>
                         <div className="text-2xl font-black text-brand-blue">{formatCurrency(results.agent)}</div>
                      </div>
-                     <div className="modern-card p-8 bg-navy-blue border border-navy-blue text-center text-white scale-110 shadow-xl">
-                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest block mb-1">Neto Oficina</span>
-                        <div className="text-3xl font-black">{formatCurrency(results.officeNet)}</div>
+                     <div className="modern-card p-8 bg-white border-2 border-navy-blue text-center scale-110 shadow-xl relative z-10">
+                        <span className="text-[10px] font-bold text-navy-blue uppercase tracking-widest block mb-1">Neto Oficina</span>
+                        <div className="text-3xl font-black text-navy-blue">{formatCurrency(results.officeNet)}</div>
                      </div>
                      <div className="modern-card p-8 bg-white border border-border-light text-center">
                         <span className="text-[10px] font-bold text-text-label uppercase tracking-widest block mb-1">Co-Agente / Colega</span>
-                        <div className="text-2xl font-black text-primary-red">{formatCurrency(coAgencyName === 'AGENTE OFICINA' ? (results.agent2 || 0) : (results.externalShareAmount || 0))}</div>
+                        <div className="text-2xl font-black text-primary-red">{formatCurrency(results.agent2 || (results as any).externalShareAmount || 0)}</div>
                      </div>
                   </div>
+
+                  {/* SEASONAL TOTALS SUMMARY (HONORARIOS) */}
+                  {seasonalTotals && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-10 bg-bg-input rounded-[32px] border-2 border-dashed border-border-light"
+                    >
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-blue mb-8 block text-center">Resumen de Comisiones Totales Temporada</span>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div className="text-center">
+                          <span className="block text-[9px] uppercase text-slate-400 mb-2 font-bold tracking-tighter">Total Agentes</span>
+                          <span className="text-2xl font-black text-brand-blue">{formatCurrency(seasonalTotals.agent + seasonalTotals.agent2)}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="block text-[9px] uppercase text-slate-400 mb-2 font-bold tracking-tighter">Total Neto Oficina</span>
+                          <span className="text-2xl font-black text-navy-blue">{formatCurrency(seasonalTotals.officeNet)}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="block text-[9px] uppercase text-slate-400 mb-2 font-bold tracking-tighter">Total Socio/Gerente</span>
+                          <span className="text-xl font-bold text-slate-600">{formatCurrency(seasonalTotals.socio + seasonalTotals.gerente)}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="block text-[9px] uppercase text-slate-400 mb-2 font-bold tracking-tighter">Caja de Operaciones</span>
+                          <span className="text-xl font-bold text-slate-600">{formatCurrency(seasonalTotals.cajaOficina)}</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
 
                   <div className="pt-10 border-t border-bg-input">
                     <div className="flex items-center gap-4 mb-8">
@@ -1614,27 +1739,6 @@ const LiquidationEngine = () => {
       </div>
 
       <div className="flex flex-col gap-4 mt-8">
-        <label 
-          data-html2canvas-ignore
-          className="flex items-center justify-between p-6 bg-slate-50/50 rounded-[32px] border border-slate-100 cursor-pointer group hover:bg-slate-50 transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isFacturado ? 'bg-primary-red border-primary-red text-white' : 'border-slate-200 bg-white'}`}>
-              {isFacturado && <CheckSquare className="w-4 h-4" />}
-            </div>
-            <span className="text-[11px] font-bold text-slate-gray uppercase tracking-widest leading-none">Generar con Factura / I.V.A</span>
-          </div>
-          <input 
-            type="checkbox" 
-            checked={isFacturado} 
-            onChange={(e) => setIsFacturado(e.target.checked)}
-            className="hidden"
-          />
-          <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${isFacturado ? 'bg-red-100 text-primary-red' : 'bg-slate-100 text-slate-400'}`}>
-            {isFacturado ? 'ACTIVO' : 'NO'}
-          </span>
-        </label>
-
         <div className="flex justify-center w-full">
            <button 
              onClick={handleSaveLiquidation}
@@ -1656,399 +1760,12 @@ const LiquidationEngine = () => {
           Descargar Informe PDF Técnico
         </button>
 
-        <button 
-          onClick={generateVisualPDF}
-          disabled={isGeneratingPDF}
-          data-html2canvas-ignore
-          className={`w-full flex items-center justify-center gap-3 py-5 text-[11px] font-bold uppercase tracking-widest rounded-[32px] transition-all active:scale-95 border-2 ${
-            isGeneratingPDF 
-            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-wait' 
-            : 'text-brand-blue border-brand-blue/10 hover:bg-brand-blue/5 shadow-lg shadow-brand-blue/5'
-          }`}
-        >
-          {isGeneratingPDF ? (
-            <>
-              <RotateCcw className="w-5 h-5 animate-spin" />
-              Generando PDF...
-            </>
-          ) : (
-            <>
-              <FileText className="w-5 h-5" />
-              Descargar PDF (Vista Web Completa)
-            </>
-          )}
-        </button>
+
       </div>
 
       <div className="mt-8 flex flex-col items-center">
-        <span className="text-[10px] text-slate-gray font-bold uppercase tracking-[0.2em] opacity-40">Liquidación de Uso Interno - TIRANTE®</span>
+        <span className="text-[10px] text-slate-gray font-bold uppercase tracking-[0.2em] opacity-40">S.O.T. - Uso Interno - TIRANTE®</span>
       </div>
-
-      {/* DASHBOARD TRANSITION ARROW */}
-    <div className="mt-12 flex items-center gap-4 w-full">
-        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-brand-gray to-primary-red opacity-30"></div>
-        <button 
-          onClick={() => setShowDashboard(!showDashboard)}
-          className="bg-brand-gray p-3 rounded-full border border-gray-200 shadow-2xl hover:scale-110 transition-transform active:scale-95 flex items-center justify-center text-dark-text"
-        >
-          {showDashboard ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </button>
-        <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-brand-gray to-primary-red opacity-30"></div>
-      </div>
-
-      <AnimatePresence>
-        {showDashboard && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="mt-8 space-y-8 pb-12"
-          >
-            <div className="bg-white rounded-xl p-8 md:p-10 shadow-sm border border-slate-200">
-               <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-brand-blue/10 p-4 rounded-xl">
-                      <History className="text-brand-blue w-6 h-6" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-display font-bold text-navy-blue tracking-tight">Dashboard Histórico</h2>
-                      <p className="text-sm text-slate-gray font-medium tracking-tight">Gestión consolidada de operaciones</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={resetSystem}
-                    className="flex items-center gap-2 bg-white text-slate-400 px-6 py-3 rounded-xl text-[11px] font-display font-bold uppercase tracking-widest hover:bg-red-50 hover:text-primary-red transition-all border border-slate-200"
-                  >
-                    <RotateCcw size={14} />
-                    Reiniciar
-                  </button>
-               </div>
-
-               <div className="grid lg:grid-cols-2 gap-12">
-                  {/* ALQUILERES */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3 px-2">
-                      <TrendingUp className="w-5 h-5 text-lime-accent" />
-                      <h3 className="text-[13px] font-display font-bold text-navy-blue uppercase tracking-[0.1em]">Alquileres</h3>
-                      <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-display font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'ALQUILER').length}</span>
-                    </div>
-                    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white">
-                       <table className="w-full text-left">
-                          <thead>
-                             <tr className="bg-brand-gray/50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-[10px] font-display font-bold text-slate-gray uppercase tracking-widest">OP / Agente</th>
-                                <th className="px-6 py-4 text-right text-[10px] font-display font-bold text-slate-gray uppercase tracking-widest">Comisión</th>
-                                <th className="px-4 py-3"></th>
-                             </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-50">
-                             {savedLiquidations.filter(l => l.type === 'ALQUILER').length === 0 ? (
-                               <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-300 font-display italic">Sin registros de alquiler</td></tr>
-                             ) : (
-                               savedLiquidations.filter(l => l.type === 'ALQUILER').map(l => (
-                                 <tr key={l.id} className="group hover:bg-bg-gray transition-colors">
-                                   <td className="px-6 py-5">
-                                     <div className="flex flex-col">
-                                       <span className="text-sm font-display font-bold text-navy-blue group-hover:text-brand-blue transition-colors cursor-pointer flex items-center gap-2" onClick={() => generatePDF(l)}>
-                                         <span className="bg-slate-100 text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-mono">{l.opNumber}</span>
-                                         {l.propertyCode}
-                                       </span>
-                                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight mt-1">{l.agentName} • {new Date(l.date).toLocaleDateString()}</span>
-                                     </div>
-                                   </td>
-                                   <td className="px-6 py-5 text-right font-mono font-bold text-navy-blue text-sm">
-                                     {formatCurrency(l.totalAgencyUSD)}
-                                   </td>
-                                   <td className="px-6 py-5 text-right">
-                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                       <button 
-                                         onClick={() => generatePDF(l)}
-                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-brand-blue hover:shadow-md transition-all border border-slate-100"
-                                       >
-                                         <Download size={14} />
-                                       </button>
-                                       <button 
-                                         onClick={() => deleteLiquidation(l.id)}
-                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-primary-red hover:shadow-md transition-all border border-slate-100"
-                                       >
-                                         <Trash2 size={14} />
-                                       </button>
-                                     </div>
-                                   </td>
-                                 </tr>
-                               ))
-                             )}
-                          </tbody>
-                       </table>
-                    </div>
-                  </div>
-
-                  {/* VENTAS */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3 px-2">
-                      <Building2 className="w-5 h-5 text-navy-blue" />
-                      <h3 className="text-[13px] font-display font-bold text-navy-blue uppercase tracking-[0.1em]">Ventas</h3>
-                      <span className="ml-auto bg-slate-100 text-slate-500 text-[10px] font-display font-bold px-3 py-1 rounded-full">{savedLiquidations.filter(l => l.type === 'VENTA').length}</span>
-                    </div>
-                    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white">
-                       <table className="w-full text-left">
-                          <thead>
-                             <tr className="bg-brand-gray/50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-[10px] font-display font-bold text-slate-gray uppercase tracking-widest">OP / Agente</th>
-                                <th className="px-6 py-4 text-right text-[10px] font-display font-bold text-slate-gray uppercase tracking-widest">Comisión</th>
-                                <th className="px-4 py-3"></th>
-                             </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-50">
-                             {savedLiquidations.filter(l => l.type === 'VENTA').length === 0 ? (
-                               <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-300 font-display italic">Sin registros de venta</td></tr>
-                             ) : (
-                               savedLiquidations.filter(l => l.type === 'VENTA').map(l => (
-                                 <tr key={l.id} className="group hover:bg-bg-gray transition-colors">
-                                   <td className="px-6 py-5">
-                                     <div className="flex flex-col">
-                                       <span className="text-sm font-display font-bold text-navy-blue group-hover:text-brand-blue transition-colors cursor-pointer flex items-center gap-2" onClick={() => generatePDF(l)}>
-                                         <span className="bg-slate-100 text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-mono">{l.opNumber}</span>
-                                         {l.propertyCode}
-                                       </span>
-                                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight mt-1">{l.agentName} • {new Date(l.date).toLocaleDateString()}</span>
-                                     </div>
-                                   </td>
-                                   <td className="px-6 py-5 text-right font-mono font-bold text-navy-blue text-sm">
-                                     {formatCurrency(l.totalAgencyUSD)}
-                                   </td>
-                                   <td className="px-6 py-5 text-right">
-                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                       <button 
-                                         onClick={() => generatePDF(l)}
-                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-brand-blue hover:shadow-md transition-all border border-slate-100"
-                                       >
-                                         <Download size={14} />
-                                       </button>
-                                       <button 
-                                         onClick={() => deleteLiquidation(l.id)}
-                                         className="p-2 bg-white text-slate-400 rounded-lg hover:text-primary-red hover:shadow-md transition-all border border-slate-100"
-                                       >
-                                         <Trash2 size={14} />
-                                       </button>
-                                     </div>
-                                   </td>
-                                 </tr>
-                               ))
-                             )}
-                          </tbody>
-                       </table>
-                    </div>
-                  </div>
-               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-            {/* FINANCIAL BOXES SECTION */}
-            <div className="space-y-12 mt-20 pb-24">
-              <div className="text-center">
-                <span className="micro-label opacity-40 mb-3 block">Consolidación Operativa</span>
-                <h2 className="text-2xl font-bold text-text-title tracking-tight">Centro de Gestión Financiera</h2>
-                <div className="w-16 h-1.5 bg-brand-blue mx-auto rounded-full mt-4"></div>
-              </div>
-              
-              {/* PRIMARY BOX: TOTAL OFICINA */}
-              <div className="flex justify-center px-4">
-                <button 
-                  onClick={() => setActiveBox(activeBox === 'Caja Total' ? null : 'Caja Total')}
-                  className={`group relative flex flex-col items-center justify-center p-12 md:p-16 bg-white rounded-[48px] shadow-2xl transition-all active:scale-95 w-full max-w-2xl border-4 ${activeBox === 'Caja Total' ? 'border-primary-red shadow-primary-red/20' : 'border-primary-red/10 hover:border-primary-red/30'}`}
-                >
-                  <div className="bg-primary-red text-white p-8 rounded-[32px] mb-8 group-hover:scale-110 transition-transform shadow-xl shadow-primary-red/20">
-                    <LayoutDashboard size={56} />
-                  </div>
-                  <div className="text-center">
-                    <span className="text-[12px] font-bold uppercase text-text-label tracking-[0.4em] block mb-4">Efectivo Consolidado</span>
-                    <span className="text-6xl md:text-8xl font-bold text-text-title tracking-tighter">{formatCurrency(getBoxTotal('Caja Total'))}</span>
-                  </div>
-                  <div className="absolute bottom-6 right-8 opacity-10">
-                    <Target size={120} />
-                  </div>
-                </button>
-              </div>
-
-              {/* OTHER BOXES: Avatar Style */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
-                {[
-                  { id: 'Agente', label: 'Agentes', bgColor: 'bg-emerald-100', iconColor: 'text-emerald-600', icon: <Users size={24} />, value: getBoxTotal('Agente') },
-                  { id: 'Oficina', label: 'Oficina', bgColor: 'bg-blue-100', iconColor: 'text-blue-600', icon: <Building2 size={24} />, value: getBoxTotal('Oficina') },
-                  { id: 'Socio', label: 'Socios', bgColor: 'bg-red-100', iconColor: 'text-primary-red', icon: <Wallet size={24} />, value: getBoxTotal('Socio') },
-                  { id: 'Gerente', label: 'Gerentes', bgColor: 'bg-indigo-100', iconColor: 'text-indigo-600', icon: <Target size={24} />, value: getBoxTotal('Gerente') },
-                  { id: 'Limpieza', label: 'Limpieza', bgColor: 'bg-teal-100', iconColor: 'text-teal-600', icon: <RotateCcw size={24} />, value: getBoxTotal('Limpieza') },
-                ].map(box => (
-                  <button 
-                    key={box.id}
-                    onClick={() => setActiveBox(activeBox === box.id ? null : box.id)}
-                    className={`group flex flex-col items-center p-10 bg-white rounded-[40px] shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all active:scale-95 border border-border-light ${activeBox === box.id ? 'ring-4 ring-brand-blue ring-offset-8' : ''}`}
-                  >
-                    <div className={`w-20 h-20 rounded-full ${box.bgColor} ${box.iconColor} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner`}>
-                      {box.icon}
-                    </div>
-                    <div className="text-center">
-                      <span className="text-[11px] font-bold uppercase text-text-label tracking-widest block mb-1 opacity-50">{box.label}</span>
-                      <span className="text-xl font-bold text-text-title">{formatCurrency(box.value)}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* BOX DRILL-DOWN */}
-              <AnimatePresence>
-                {activeBox && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100 relative">
-                       <div className="flex justify-between items-center mb-8">
-                          <div className="flex flex-col">
-                            <h3 className="text-navy-blue font-black uppercase tracking-widest text-sm">
-                               Detalle: {activeBox === 'Agente' ? 'Comisiones a Liquidar' : activeBox}
-                            </h3>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Historial de movimientos y saldos</span>
-                          </div>
-                          <button 
-                            onClick={() => handleWithdrawal(activeBox)}
-                            className="bg-primary-red text-white px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:shadow-lg hover:shadow-red-500/20 transition-all active:scale-95 flex items-center gap-2"
-                          >
-                            <RotateCcw size={14} className="rotate-45" />
-                            Realizar Retiro
-                          </button>
-                       </div>
-
-                       <div className="grid lg:grid-cols-2 gap-10">
-                          {/* INCOMES */}
-                          <div className="space-y-4">
-                             <h4 className="text-[11px] text-lime-accent font-black uppercase tracking-widest px-2">Ingresos Consolidados</h4>
-                             <div className="bg-slate-50/50 rounded-[24px] border border-slate-100 overflow-hidden">
-                                <table className="w-full text-left">
-                                   <thead className="bg-white text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                                      <tr>
-                                        <th className="px-6 py-4">{activeBox === 'Agente' ? 'Agente' : 'Tipo / Prop.'}</th>
-                                        <th className="px-6 py-4">ID / Fecha</th>
-                                        <th className="px-6 py-4 text-right">Monto</th>
-                                      </tr>
-                                   </thead>
-                                   <tbody className="divide-y divide-slate-100 font-sans">
-                                      {savedLiquidations.flatMap(l => {
-                                        const entries: any[] = [];
-                                        
-                                        if (activeBox === 'Agente') {
-                                          const a1 = l.agent1CommissionUSD || (l as any).agentCommissionUSD || 0;
-                                          if (a1 > 0) {
-                                            entries.push({
-                                              id: l.id + '-a1',
-                                              label: l.agentName,
-                                              subLabel: l.propertyCode || 'N/A',
-                                              op: l.opNumber,
-                                              date: l.date,
-                                              amount: a1,
-                                              snapshot: l
-                                            });
-                                          }
-                                          if (l.agent2CommissionUSD && l.agent2CommissionUSD > 0) {
-                                            entries.push({
-                                              id: l.id + '-a2',
-                                              label: l.agent2Name,
-                                              subLabel: l.propertyCode,
-                                              op: l.opNumber,
-                                              date: l.date,
-                                              amount: l.agent2CommissionUSD,
-                                              snapshot: l
-                                            });
-                                          }
-                                        } else {
-                                          let amount = 0;
-                                          if (activeBox === 'Oficina') amount = l.officeNetUSD;
-                                          if (activeBox === 'Socio') amount = l.socioUSD;
-                                          if (activeBox === 'Gerente') amount = l.gerenteUSD;
-                                          if (activeBox === 'Caja Total') amount = l.cajaOficinaUSD;
-                                          if (activeBox === 'Limpieza') amount = l.cleaningUSD;
-
-                                          if (amount > 0) {
-                                            entries.push({
-                                              id: l.id,
-                                              label: l.type,
-                                              subLabel: l.propertyCode || 'N/A',
-                                              op: l.opNumber,
-                                              date: l.date,
-                                              amount: amount,
-                                              snapshot: l
-                                            });
-                                          }
-                                        }
-                                        return entries;
-                                      }).map(entry => (
-                                        <tr key={entry.id} className="hover:bg-white transition-colors">
-                                          <td className="px-6 py-4">
-                                            <div className="text-xs font-bold text-navy-blue uppercase">{entry.label}</div>
-                                            <div className="text-[9px] text-slate-400 font-medium tracking-wide">{entry.subLabel}</div>
-                                          </td>
-                                          <td className="px-6 py-4">
-                                            <button 
-                                              onClick={() => generatePDF(entry.snapshot)}
-                                              className="text-[11px] font-bold text-navy-blue border-b border-dotted border-slate-300 hover:text-navy-blue transition-colors"
-                                            >
-                                              {entry.op}
-                                            </button>
-                                            <div className="text-[9px] text-slate-400 font-medium">{new Date(entry.date).toLocaleDateString()}</div>
-                                          </td>
-                                          <td className="px-6 py-4 text-right font-black text-lime-accent text-sm">+{formatCurrency(entry.amount)}</td>
-                                        </tr>
-                                       ))}
-                                    </tbody>
-                                 </table>
-                              </div>
-                           </div>
- 
-                           {/* WITHDRAWALS */}
-                           <div className="space-y-4">
-                              <h4 className="text-[11px] text-primary-red font-black uppercase tracking-widest px-2">Egresos y Retiros</h4>
-                              <div className="bg-slate-50/50 rounded-[24px] border border-slate-100 overflow-hidden">
-                                 <table className="w-full text-left">
-                                    <thead className="bg-white text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                                       <tr>
-                                         <th className="px-6 py-4">ID / Fecha</th>
-                                         <th className="px-6 py-4">Receptor / Resp.</th>
-                                         <th className="px-6 py-4 text-right">Monto</th>
-                                      </tr>
-                                   </thead>
-                                   <tbody className="divide-y divide-slate-100 font-sans">
-                                       {withdrawals.filter(w => w.boxId === activeBox).length === 0 ? (
-                                         <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-medium italic">Sin retiros</td></tr>
-                                       ) : (
-                                         withdrawals.filter(w => w.boxId === activeBox).map(w => (
-                                           <tr key={w.id} className="hover:bg-white transition-colors">
-                                             <td className="px-6 py-4">
-                                                <div className="text-xs font-bold text-navy-blue">{w.id}</div>
-                                                <div className="text-[9px] text-slate-400 font-medium">{new Date(w.date).toLocaleDateString()}</div>
-                                              </td>
-                                             <td className="px-6 py-4">
-                                                <div className="text-[11px] font-bold text-primary-red uppercase leading-none mb-1">A: {w.recipient}</div>
-                                                <div className="text-[9px] text-slate-400 font-medium uppercase tracking-tight">Por: {w.performedBy}</div>
-                                              </td>
-                                             <td className="px-6 py-4 text-right font-black text-primary-red text-sm">-{formatCurrency(w.amountUSD)}</td>
-                                           </tr>
-                                         ))
-                                       )}
-                                    </tbody>
-                                 </table>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
     </div>
   );
 };
@@ -2091,7 +1808,7 @@ export default function App() {
       <footer className="mt-16 text-[10px] text-graphite font-bold uppercase tracking-[0.3em] flex flex-col items-center gap-3 opacity-40">
         <div>Diego Ariel Tirante • Broker Inmobiliario</div>
         <div className="flex items-center gap-2">
-          <span>© 2024</span>
+          <span>© 2026</span>
           <span className="w-1 h-1 bg-graphite rounded-full"></span>
           <span>tirante bienes raices</span>
         </div>
